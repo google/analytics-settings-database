@@ -1,0 +1,1 @@
+[{"fields": [{"type": "STRING", "name": "property", "mode": "NULLABLE"}, {"type": "STRING", "name": "displayName", "mode": "NULLABLE"}], "type": "RECORD", "name": "propertySummaries", "mode": "REPEATED"}, {"type": "STRING", "name": "account", "mode": "NULLABLE"}, {"type": "STRING", "name": "displayName", "mode": "NULLABLE"}, {"type": "STRING", "name": "name", "mode": "NULLABLE"}]

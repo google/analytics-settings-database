@@ -1,0 +1,1 @@
+[{"type": "TIMESTAMP", "name": "updateTime", "mode": "NULLABLE"}, {"type": "STRING", "name": "displayName", "mode": "NULLABLE"}, {"type": "STRING", "name": "name", "mode": "NULLABLE"}, {"type": "BOOL", "name": "deleted", "mode": "NULLABLE"}, {"type": "STRING", "name": "regionCode", "mode": "NULLABLE"}, {"type": "TIMESTAMP", "name": "createTime", "mode": "NULLABLE"}]
