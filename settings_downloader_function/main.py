@@ -15,6 +15,7 @@
 
 import json
 import time
+import os
 from google.analytics.admin import AnalyticsAdminServiceClient
 from google.analytics.admin_v1alpha.types import ListPropertiesRequest
 import google.auth
@@ -36,7 +37,7 @@ GA_SCOPES = [
     'https://www.googleapis.com/auth/analytics'
 ]
 DATASET_ID = 'analytics_settings_database'
-BUCKET_NAME = 'analytics_settings_database'
+BUCKET_NAME = os.environ.get('BUCKET_NAME')
 
 REQUEST_DELAY = .1
 

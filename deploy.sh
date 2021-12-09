@@ -33,135 +33,197 @@ storage-api.googleapis.com \
 bigquery.googleapis.com \
 cloudscheduler.googleapis.com \
 appengine.googleapis.com \
+analytics.googleapis.com \
+analyticsadmin.googleapis.com \
 --async
-echo "~~~~~~~~ Creating Cloud Bucket ~~~~~~~~~~"
-gsutil mb gs://analytics_settings_database
-echo "---------------------------"
-read -p "Please enter you desired service account name with no spaces.
+
+create_cloud_bucket () {
+	read -p "Please enter your Cloud Bucket name: " cloud_bucket_name
+	echo "~~~~~~~~ Creating Cloud Bucket ~~~~~~~~~~"
+	{
+		gsutil mb gs://$cloud_bucket_name
+		echo "-----------------------
+		
+Bucket creation complete.
+		
+-----------------------"
+	} || {
+		echo "-----------------------
+		
+Bucket creation failed. Enter a different name.
+		
+-----------------------"
+		create_cloud_bucket
+	}
+}
+
+create_cloud_bucket
+
+create_service_account () {
+	read -p "Please enter you desired service account name with no spaces.
 This service account will be used by your Cloud Function.
 The recommended name is 'ga-database' : " service_account_name
-echo "~~~~~~~~ Creating Service Account ~~~~~~~~~~"
-gcloud iam service-accounts create $service_account_name \
-  --display-name=$service_account_name
-service_account_email=$(gcloud iam service-accounts list \
-  --filter=displayName=${service_account_name} \
-  --format='value(email)')
-echo $service_account_email
-echo $service_account_email
-echo "---------------------------"
-read -p "Please enter your desired Function name. The recommended
-function name is 'analytics_settings_downloader': " function_name
-echo "---------------------------"
-read -p "Please enter your desired local timezone for your GA data
-from thislist: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones.
-Use the format from the column 'TZ database name'.
-Example timezones:
-- US/Eastern
-- US/Pacific
-- Europe/Vienna
+	echo "~~~~~~~~ Creating Service Account ~~~~~~~~~~"
+	{
+		gcloud iam service-accounts create $service_account_name --display-name=$service_account_name
+		service_account_email=$(gcloud iam service-accounts list --filter=displayName=$service_account_name --format='value(email)')
+		gcloud projects add-iam-policy-binding $project_id \
+			--member='serviceAccount:${service_account_email}' \
+			--role='roles/editor'
+		echo "--------------------------------
+		
+Service account creation complete.
+		
+--------------------------------"
+	} || {
+		echo "--------------------------------
+		
+Service account creation failed.
+		
+--------------------------------"
+		create_service_account
+	}
+}
 
-Enter timezone:" timezone
-echo "~~~~~~~~ Creating Function ~~~~~~~~~~"
-gcloud functions deploy $function_name \
-	--project $project_id \
-	--runtime python39 \
-	--memory 1GB \
-	--timeout 540s \
-	--trigger-http \
-	--entry-point ga_settings_download \
-	--service-account=$service_account_email
-	--set-env-vars=GCP_PROJECT=$function_name,LOCAL_TIMEZONE=$timezone
-echo "---------------------------"
+create_service_account
+
+create_cloud_function () {
+	read -p "Please enter your desired Function name. The recommended
+function name is 'analytics_settings_downloader': " function_name
+	{
+		cd settings_downloader_function
+		echo "~~~~~~~~ Creating Function ~~~~~~~~~~"
+		gcloud functions deploy $function_name \
+			--project=$project_id \
+			--runtime=python39 \
+			--service-account=$service_account_email \
+			--memory=1GB \
+			--timeout=540s \
+			--trigger-http \
+			--entry-point=ga_settings_download \
+			--set-env-vars=BUCKET_NAME=$cloud_bucket_name
+		cd ..
+		echo "-------------------------
+		
+Function creation complete.
+		
+-------------------------"
+	} || {
+		echo "-------------------------
+		
+Function creation failed.
+		
+-------------------------"
+		create_cloud_function
+	}
+}
+
+create_cloud_function
+
 echo "~~~~~~~~ Creating BigQuery Dataset ~~~~~~~~~~"
 bq mk -d $project_id:analytics_settings_database
 echo "~~~~~~~~ Creating BigQuery Tables ~~~~~~~~~~"
 cd schemas
 bq mk -t --time_partitioning_type=DAY \
 	--schema=/ua_account_summaries_schemas.json \
-	$project_id:analytics_settings_database.ua_account_summaries
+	$project_id:_schema.ua_account_summaries
 bq mk -t --time_partitioning_type=DAY \
-	$project_id:analytics_settings_database.ua_goals \
-	--schema=/ua_goals_schemas.json
+	--schema=/ua_goals_schema.json \
+	$project_id:analytics_settings_database.ua_goals
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ua_views_schemas.json \
+	--schema=/ua_views_schema.json \
 	$project_id:analytics_settings_database.ua_views
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ua_filters_schemas.json \
+	--schema=/ua_filters_schema.json \
 	$project_id:analytics_settings_database.ua_filters
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ua_filters_schemas.json \
+	--schema=/ua_filters_schema.json \
 	$project_id:analytics_settings_database.ua_filter_links
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ua_segments_schemas.json \
+	--schema=/ua_segments_schema.json \
 	$project_id:analytics_settings_database.ua_segments
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ua_custom_dimensions_schemas.json \
+	--schema=/ua_custom_dimensions_schema.json \
 	$project_id:analytics_settings_database.ua_custom_dimensions
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ua_custom_metrics_schemas.json \
+	--schema=/ua_custom_metrics_schema.json \
 	$project_id:analytics_settings_database.ua_custom_metrics
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ua_audiences_schemas.json \
+	--schema=/ua_audiences_schema.json \
 	$project_id:analytics_settings_database.ua_audiences
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_account_summaries_schemas.json \
+	--schema=/ga4_account_summaries_schema.json \
 	$project_id:analytics_settings_database.ga4_account_summaries
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_accounts_schemas.json \
+	--schema=/ga4_accounts_schema.json \
 	$project_id:analytics_settings_database.ga4_accounts
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_properties_schemas.json \
+	--schema=/ga4_properties_schema.json \
 	$project_id:analytics_settings_database.ga4_properties
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_android_app_data_streams_schemas.json \
+	--schema=/ga4_android_app_data_streams_schema.json \
 	$project_id:analytics_settings_database.ga4_android_app_data_streams
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_measurment_protocol_secrets_schemas.json \
+	--schema=/ga4_measurment_protocol_secrets_schema.json \
 	$project_id:analytics_settings_database.ga4_measurement_protocol_secrets
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_conversion_events_schemas.json \
+	--schema=/ga4_conversion_events_schema.json \
 	$project_id:analytics_settings_database.ga4_conversion_events
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_custom_dimensions_schemas.json \
+	--schema=/ga4_custom_dimensions_schema.json \
 	$project_id:analytics_settings_database.ga4_custom_dimensions
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_custom_metrics_schemas.json
+	--schema=/ga4_custom_metrics_schema.json \
 	$project_id:analytics_settings_database.ga4_custom_metrics
 bq mk -t --time_partitioning_type=DAY \
-	$project_id:analytics_settings_database.ga4_dv360_link_proposals
-bq mk -t --time_partitioning_type=DAY \
-	$project_id:analytics_settings_database.ga4_dv360_links
-bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_firebase_links_schemas.json \
+	--schema=/ga4_firebase_links_schema.json \
 	$project_id:analytics_settings_database.ga4_firebase_links
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_google_ads_links_schemas.json \
+	--schema=/ga4_google_ads_links_schema.json \
 	$project_id:analytics_settings_database.ga4_google_ads_links
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_ios_app_data_streams_schemas.json \
+	--schema=/ga4_ios_app_data_streams_schema.json \
 	$project_id:analytics_settings_database.ga4_ios_app_data_streams
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_web_data_streams_schemas.json \
+	--schema=/ga4_web_data_streams_schema.json \
 	$project_id:analytics_settings_database.ga4_web_data_streams
 cd ..
-echo "!!~~~~~~ All Tables Created ~~~~~~~~!!"
-echo "---------------------------"
-read -p "Please enter your desired Cloud Scheduler name.
-The recommended scheduler name is 'analytics_settings_downloader': " scheduler_name
-echo "A cloud scheduler will now be created that runs daily at 1 AM."
-echo "~~~~~~~~ Creating Cloud Scheduler ~~~~~~~~~~"
-function_uri=$(gcloud functions describe ${function_name} \
-  --format='value(httpsTrigger.url)')
-gcloud scheduler jobs create http $scheduler_name
-	--schedule "0 1 * * *" \
-	--uri $function_uri \
-	--http-method=GET \
-  --oidc-service-account-email=$service_account_email \
-	--oidc-token-audience=$function_uri \
-  --project=$project_name
+echo "-------------------------
 
-echo "!!~~~~~~ Cloud Scheduler Created ~~~~~~~~!!"
-echo "---------------------------"
+All tables created.
+
+-------------------------"
+
+create_scheduler () {
+	read -p "Please enter your desired Cloud Scheduler name.
+The recommended scheduler name is 'analytics_settings_downloader': " scheduler_name
+	echo "A cloud scheduler will now be created that runs daily at 11 PM."
+	{
+		echo "~~~~~~~~ Creating Cloud Scheduler ~~~~~~~~~~"
+		function_uri=$(gcloud functions describe $function_name --format='value(httpsTrigger.url)')
+		gcloud scheduler jobs create http $scheduler_name
+			--schedule "0 23 * * *" \
+			--uri=$function_uri \
+			--http-method=GET \
+		  --oidc-service-account-email=$service_account_email \
+			--oidc-token-audience=$function_uri \
+		  --project=$project_name
+			echo "-------------------------
+		
+Cloud scheduler creation complete.
+		
+-------------------------"
+	} || {
+		echo "-------------------------
+		
+Cloud Scheduler failed. Please create the scheduler manually.
+		
+-------------------------"
+	}
+}
+
+create_scheduler
+
 echo "***************************
 *
 * Google Analytics Settings Database Setup Complete!
