@@ -66,10 +66,12 @@ The recommended name is 'ga-database' : " service_account_name
 	echo "~~~~~~~~ Creating Service Account ~~~~~~~~~~"
 	{
 		gcloud iam service-accounts create $service_account_name --display-name=$service_account_name
-		service_account_email=$(gcloud iam service-accounts list --filter=displayName=$service_account_name --format='value(email)')
+        sleep 5
+		service_account_email=$(gcloud iam service-accounts list --filter=displayName=$service_account_name --format="value(email)")
+        echo $service_account_email
 		gcloud projects add-iam-policy-binding $project_id \
-			--member='serviceAccount:${service_account_email}' \
-			--role='roles/editor'
+			--member="serviceAccount:$service_account_email" \
+			--role="roles/editor"
 		echo "--------------------------------
 		
 Service account creation complete.
@@ -125,67 +127,67 @@ bq mk -d $project_id:analytics_settings_database
 echo "~~~~~~~~ Creating BigQuery Tables ~~~~~~~~~~"
 cd schemas
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ua_account_summaries_schemas.json \
-	$project_id:_schema.ua_account_summaries
+	--schema=./ua_account_summaries_schema.json \
+	$project_id:analytics_settings_database.ua_account_summaries
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ua_goals_schema.json \
+	--schema=./ua_goals_schema.json \
 	$project_id:analytics_settings_database.ua_goals
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ua_views_schema.json \
+	--schema=./ua_views_schema.json \
 	$project_id:analytics_settings_database.ua_views
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ua_filters_schema.json \
+	--schema=./ua_filters_schema.json \
 	$project_id:analytics_settings_database.ua_filters
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ua_filters_schema.json \
+	--schema=./ua_filters_schema.json \
 	$project_id:analytics_settings_database.ua_filter_links
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ua_segments_schema.json \
+	--schema=./ua_segments_schema.json \
 	$project_id:analytics_settings_database.ua_segments
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ua_custom_dimensions_schema.json \
+	--schema=./ua_custom_dimensions_schema.json \
 	$project_id:analytics_settings_database.ua_custom_dimensions
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ua_custom_metrics_schema.json \
+	--schema=./ua_custom_metrics_schema.json \
 	$project_id:analytics_settings_database.ua_custom_metrics
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ua_audiences_schema.json \
+	--schema=./ua_audiences_schema.json \
 	$project_id:analytics_settings_database.ua_audiences
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_account_summaries_schema.json \
+	--schema=./ga4_account_summaries_schema.json \
 	$project_id:analytics_settings_database.ga4_account_summaries
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_accounts_schema.json \
+	--schema=./ga4_accounts_schema.json \
 	$project_id:analytics_settings_database.ga4_accounts
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_properties_schema.json \
+	--schema=./ga4_properties_schema.json \
 	$project_id:analytics_settings_database.ga4_properties
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_android_app_data_streams_schema.json \
+	--schema=./ga4_android_app_data_streams_schema.json \
 	$project_id:analytics_settings_database.ga4_android_app_data_streams
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_measurment_protocol_secrets_schema.json \
+	--schema=./ga4_measurement_protocol_secrets_schema.json \
 	$project_id:analytics_settings_database.ga4_measurement_protocol_secrets
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_conversion_events_schema.json \
+	--schema=./ga4_conversion_events_schema.json \
 	$project_id:analytics_settings_database.ga4_conversion_events
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_custom_dimensions_schema.json \
+	--schema=./ga4_custom_dimensions_schema.json \
 	$project_id:analytics_settings_database.ga4_custom_dimensions
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_custom_metrics_schema.json \
+	--schema=./ga4_custom_metrics_schema.json \
 	$project_id:analytics_settings_database.ga4_custom_metrics
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_firebase_links_schema.json \
+	--schema=./ga4_firebase_links_schema.json \
 	$project_id:analytics_settings_database.ga4_firebase_links
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_google_ads_links_schema.json \
+	--schema=./ga4_google_ads_links_schema.json \
 	$project_id:analytics_settings_database.ga4_google_ads_links
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_ios_app_data_streams_schema.json \
+	--schema=./ga4_ios_app_data_streams_schema.json \
 	$project_id:analytics_settings_database.ga4_ios_app_data_streams
 bq mk -t --time_partitioning_type=DAY \
-	--schema=/ga4_web_data_streams_schema.json \
+	--schema=./ga4_web_data_streams_schema.json \
 	$project_id:analytics_settings_database.ga4_web_data_streams
 cd ..
 echo "-------------------------
@@ -200,15 +202,16 @@ The recommended scheduler name is 'analytics_settings_downloader': " scheduler_n
 	echo "A cloud scheduler will now be created that runs daily at 11 PM."
 	{
 		echo "~~~~~~~~ Creating Cloud Scheduler ~~~~~~~~~~"
-		function_uri=$(gcloud functions describe $function_name --format='value(httpsTrigger.url)')
-		gcloud scheduler jobs create http $scheduler_name
-			--schedule "0 23 * * *" \
-			--uri=$function_uri \
+		function_uri=$(gcloud functions describe $function_name --format="value(httpsTrigger.url)")
+        echo $function_uri
+		gcloud scheduler jobs create http $scheduler_name \
+			--schedule="0 23 * * *" \
+      --uri="$function_uri" \
 			--http-method=GET \
-		  --oidc-service-account-email=$service_account_email \
-			--oidc-token-audience=$function_uri \
-		  --project=$project_name
-			echo "-------------------------
+			--oidc-service-account-email=$service_account_email \
+      --oidc-token-audience=$function_uri \
+      --project=$project_id
+		echo "-------------------------
 		
 Cloud scheduler creation complete.
 		
@@ -228,7 +231,7 @@ echo "***************************
 *
 * Google Analytics Settings Database Setup Complete!
 *
-* You must now grant ${service_account_email} access to your Google Analytics
+* You must now grant $service_account_email access to your Google Analytics
 * Accounts. This will be the email Google Cloud uses to access your Google
 * Analytics settings.
 ***************************"
