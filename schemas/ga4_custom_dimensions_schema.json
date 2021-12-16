@@ -1,1 +1,42 @@
-[{"type": "STRING", "name": "property", "mode": "NULLABLE"}, {"type": "STRING", "name": "display_name", "mode": "NULLABLE"}, {"type": "STRING", "name": "name", "mode": "NULLABLE"}, {"type": "INT64", "name": "scope", "mode": "NULLABLE"}, {"type": "STRING", "name": "parameter_name", "mode": "NULLABLE"}, {"type": "BOOL", "name": "disallow_ads_personalization", "mode": "NULLABLE"}, {"type": "STRING", "name": "property_display_name", "mode": "NULLABLE"}, {"type": "STRING", "name": "description", "mode": "NULLABLE"}]
+[
+  {
+    "mode": "NULLABLE",
+    "name": "property",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "display_name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "scope",
+    "type": "INTEGER"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "parameter_name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "disallow_ads_personalization",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "property_display_name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "description",
+    "type": "STRING"
+  }
+]

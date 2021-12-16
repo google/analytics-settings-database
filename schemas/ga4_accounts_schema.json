@@ -1,1 +1,34 @@
-[{"type": "TIMESTAMP", "name": "update_time", "mode": "NULLABLE"}, {"type": "STRING", "name": "display_name", "mode": "NULLABLE"}, {"type": "STRING", "name": "name", "mode": "NULLABLE"}, {"type": "BOOL", "name": "deleted", "mode": "NULLABLE"}, {"type": "STRING", "name": "region_code", "mode": "NULLABLE"}, {"type": "TIMESTAMP", "name": "create_time", "mode": "NULLABLE"}]
+[
+  {
+    "mode": "NULLABLE",
+    "name": "deleted",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "region_code",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "STRING"
+  },
+  {
+    "description": "bq-datetime",
+    "mode": "NULLABLE",
+    "name": "update_time",
+    "type": "TIMESTAMP"
+  },
+  {
+    "description": "bq-datetime",
+    "mode": "NULLABLE",
+    "name": "create_time",
+    "type": "TIMESTAMP"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "display_name",
+    "type": "STRING"
+  }
+]

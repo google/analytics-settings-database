@@ -1,1 +1,28 @@
-[{"type": "STRING", "name": "project", "mode": "NULLABLE"}, {"type": "STRING", "name": "property", "mode": "NULLABLE"}, {"type": "STRING", "name": "property_display_name", "mode": "NULLABLE"}, {"type": "STRING", "name": "name", "mode": "NULLABLE"}, {"type": "TIMESTAMP", "name": "create_time", "mode": "NULLABLE"}]
+[
+  {
+    "mode": "NULLABLE",
+    "name": "property",
+    "type": "STRING"
+  },
+  {
+    "description": "bq-datetime",
+    "mode": "NULLABLE",
+    "name": "create_time",
+    "type": "TIMESTAMP"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "project",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "property_display_name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "STRING"
+  }
+]

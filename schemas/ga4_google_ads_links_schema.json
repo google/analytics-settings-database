@@ -1,1 +1,47 @@
-[{"type": "TIMESTAMP", "name": "update_time", "mode": "NULLABLE"}, {"type": "STRING", "name": "property", "mode": "NULLABLE"}, {"type": "BOOL", "name": "ads_personalizationenabled", "mode": "NULLABLE"}, {"type": "STRING", "name": "name", "mode": "NULLABLE"}, {"type": "STRING", "name": "property_display_name", "mode": "NULLABLE"}, {"type": "BOOL", "name": "can_manageclients", "mode": "NULLABLE"}, {"type": "STRING", "name": "creator_emailaddress", "mode": "NULLABLE"}, {"type": "STRING", "name": "customer_id", "mode": "NULLABLE"}, {"type": "TIMESTAMP", "name": "create_time", "mode": "NULLABLE"}]
+[
+  {
+    "mode": "NULLABLE",
+    "name": "update_time",
+    "type": "DATETIME"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "property",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "ads_personalization_enabled",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "property_display_name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "can_manage_clients",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "creator_email_address",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "customer_id",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "create_time",
+    "type": "DATETIME"
+  }
+]

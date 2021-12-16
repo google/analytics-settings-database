@@ -16,14 +16,14 @@
 #  limitations under the License.
 #
 
-echo "******** Welcome **********
+cat <<END 
+******** Welcome **********
 *
 * Google Analytics Settings Database Setup
 *
-***************************"
-echo "---------------------------"
+***************************
+END
 read -p "Please enter your Google Cloud Project ID: " project_id
-echo "---------------------------"
 echo "~~~~~~~~ Enabling APIs ~~~~~~~~~~"
 gcloud services enable \
 cloudbuild.googleapis.com \
@@ -37,90 +37,110 @@ analytics.googleapis.com \
 analyticsadmin.googleapis.com \
 --async
 
-create_cloud_bucket () {
-	read -p "Please enter your Cloud Bucket name: " cloud_bucket_name
-	echo "~~~~~~~~ Creating Cloud Bucket ~~~~~~~~~~"
-	{
-		gsutil mb gs://$cloud_bucket_name
-		echo "-----------------------
-		
-Bucket creation complete.
-		
------------------------"
-	} || {
-		echo "-----------------------
-		
-Bucket creation failed. Enter a different name.
-		
------------------------"
-		create_cloud_bucket
-	}
+exit_setup () {
+  exit "Exiting Google Analytics Settings Database setup. Setup failed."
 }
 
-create_cloud_bucket
+cloud_bucket_setup () {
+  read -p "Please enter your Cloud Bucket name: " cloud_bucket_name
+  echo "~~~~~~~~ Creating Cloud Bucket ~~~~~~~~~~"
+  if gsutil mb gs://$cloud_bucket_name; then
+    echo "Bucket created."
+  else
+    read -p "Bucket creation failed. Try again? y/n: " exit_response
+    if [ $exit_response = "n" ]; then
+      exit_setup
+    else
+      cloud_bucket_setup 
+    fi
+  fi
+}
+
+cloud_bucket_setup
 
 create_service_account () {
-	read -p "Please enter you desired service account name with no spaces.
+  gcloud iam service-accounts create $service_account_name \
+    --display-name=$service_account_name
+}
+
+set_service_account_email () {
+  if [[ service_account_email = "" || $1 < 3 ]]; then
+    echo "Service account email attempt $1"
+    sleep 2
+    retry_attempt=$(( $1 + 1 ))
+    set_service_account_email "$retry_attempt"
+  else
+    echo $service_account_email
+  fi
+}
+
+set_service_account_iam_policy () {
+  gcloud projects add-iam-policy-binding $project_id \
+    --member="serviceAccount:$service_account_email" \
+    --role="roles/editor"
+}
+
+service_account_setup () {
+  read -p "Please enter you desired service account name with no spaces.
 This service account will be used by your Cloud Function.
 The recommended name is 'ga-database' : " service_account_name
-	echo "~~~~~~~~ Creating Service Account ~~~~~~~~~~"
-	{
-		gcloud iam service-accounts create $service_account_name --display-name=$service_account_name
-        sleep 5
-		service_account_email=$(gcloud iam service-accounts list --filter=displayName=$service_account_name --format="value(email)")
-        echo $service_account_email
-		gcloud projects add-iam-policy-binding $project_id \
-			--member="serviceAccount:$service_account_email" \
-			--role="roles/editor"
-		echo "--------------------------------
-		
-Service account creation complete.
-		
---------------------------------"
-	} || {
-		echo "--------------------------------
-		
-Service account creation failed.
-		
---------------------------------"
-		create_service_account
-	}
+  echo "~~~~~~~~ Creating Service Account ~~~~~~~~~~"
+  if create_service_account; then
+    service_account_email="$service_account_name@$project_id.iam.gserviceaccount.com"
+    if set_service_account_iam_policy; then
+      echo "Service account created."
+    else
+      read -p  "Service account creation failed. Try again? y/n: " exit_response
+      if [ $exit_response = "n" ]; then
+        exit_setup
+      else
+        service_account_setup
+      fi
+    fi
+  else
+    read -p  "Service account creation failed. Try again? y/n: " exit_response
+    if [ $exit_response = "n" ]; then
+      exit_setup
+    else
+      create_service_account
+    fi
+  fi
 }
 
-create_service_account
+service_account_setup
 
 create_cloud_function () {
-	read -p "Please enter your desired Function name. The recommended
-function name is 'analytics_settings_downloader': " function_name
-	{
-		cd settings_downloader_function
-		echo "~~~~~~~~ Creating Function ~~~~~~~~~~"
-		gcloud functions deploy $function_name \
-			--project=$project_id \
-			--runtime=python39 \
-			--service-account=$service_account_email \
-			--memory=1GB \
-			--timeout=540s \
-			--trigger-http \
-			--entry-point=ga_settings_download \
-			--set-env-vars=BUCKET_NAME=$cloud_bucket_name
-		cd ..
-		echo "-------------------------
-		
-Function creation complete.
-		
--------------------------"
-	} || {
-		echo "-------------------------
-		
-Function creation failed.
-		
--------------------------"
-		create_cloud_function
-	}
+  gcloud functions deploy $function_name \
+  	--project=$project_id \
+  	--runtime=python39 \
+  	--service-account=$service_account_email \
+  	--memory=1GB \
+  	--timeout=540s \
+  	--trigger-http \
+  	--entry-point=ga_settings_download \
+  	--set-env-vars=BUCKET_NAME=$cloud_bucket_name
 }
 
-create_cloud_function
+cloud_function_setup () {
+	read -p "Please enter your desired Function name. The recommended
+function name is 'analytics_settings_downloader': " function_name
+  cd settings_downloader_function
+  echo "~~~~~~~~ Creating Function ~~~~~~~~~~"
+	if create_cloud_function; then
+	  cd ..
+	  echo "Function created."
+  else
+    cd ..
+    read -p  "Function creation failed. Try again? y/n: " exit_response
+    if [ $exit_response = "n" ]; then
+      exit_setup
+    else
+      cloud_function_setup
+    fi
+  fi
+}
+
+cloud_function_setup
 
 echo "~~~~~~~~ Creating BigQuery Dataset ~~~~~~~~~~"
 bq mk -d $project_id:analytics_settings_database
@@ -139,7 +159,7 @@ bq mk -t --time_partitioning_type=DAY \
 	--schema=./ua_filters_schema.json \
 	$project_id:analytics_settings_database.ua_filters
 bq mk -t --time_partitioning_type=DAY \
-	--schema=./ua_filters_schema.json \
+	--schema=./ua_filter_links_schema.json \
 	$project_id:analytics_settings_database.ua_filter_links
 bq mk -t --time_partitioning_type=DAY \
 	--schema=./ua_segments_schema.json \
@@ -190,42 +210,42 @@ bq mk -t --time_partitioning_type=DAY \
 	--schema=./ga4_web_data_streams_schema.json \
 	$project_id:analytics_settings_database.ga4_web_data_streams
 cd ..
-echo "-------------------------
+echo "BigQuery tables created."
 
-All tables created.
-
--------------------------"
-
-create_scheduler () {
-	read -p "Please enter your desired Cloud Scheduler name.
-The recommended scheduler name is 'analytics_settings_downloader': " scheduler_name
-	echo "A cloud scheduler will now be created that runs daily at 11 PM."
-	{
-		echo "~~~~~~~~ Creating Cloud Scheduler ~~~~~~~~~~"
-		function_uri=$(gcloud functions describe $function_name --format="value(httpsTrigger.url)")
-        echo $function_uri
-		gcloud scheduler jobs create http $scheduler_name \
-			--schedule="0 23 * * *" \
-      --uri="$function_uri" \
-			--http-method=GET \
-			--oidc-service-account-email=$service_account_email \
-      --oidc-token-audience=$function_uri \
-      --project=$project_id
-		echo "-------------------------
-		
-Cloud scheduler creation complete.
-		
--------------------------"
-	} || {
-		echo "-------------------------
-		
-Cloud Scheduler failed. Please create the scheduler manually.
-		
--------------------------"
-	}
+create_cloud_scheduler () {
+  gcloud scheduler jobs create http $scheduler_name \
+  	--schedule "0 23 * * *" \
+    --uri="$function_uri" \
+  	--http-method=GET \
+  	--oidc-service-account-email=$service_account_email \
+    --oidc-token-audience=$function_uri \
+    --project=$project_id
 }
 
-create_scheduler
+cloud_scheduler_setup () {
+	read -p "Please enter your desired Cloud Scheduler name.
+The recommended scheduler name is 'analytics_settings_downloader': " scheduler_name
+  echo "A cloud scheduler will now be created that runs daily at 11 PM."
+	echo "~~~~~~~~ Creating Cloud Scheduler ~~~~~~~~~~"
+	function_uri=$(gcloud functions describe $function_name --format="value(httpsTrigger.url)")
+	echo $function_uri
+  if gcloud app browse; then
+    gcloud app create
+  fi
+	if create_cloud_scheduler; then
+    echo "Cloud scheduler created."
+  else
+    cd ..
+    read -p  "Schedule job creation failed. Try again? y/n: " exit_response
+    if [ $exit_response = "n" ]; then
+      exit_setup
+    else
+      cloud_scheduler_setup
+    fi
+  fi
+}
+
+cloud_scheduler_setup
 
 echo "***************************
 *

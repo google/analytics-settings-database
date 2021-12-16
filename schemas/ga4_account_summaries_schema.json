@@ -1,1 +1,34 @@
-[{"fields": [{"type": "STRING", "name": "property", "mode": "NULLABLE"}, {"type": "STRING", "name": "display_name", "mode": "NULLABLE"}], "type": "RECORD", "name": "property_summaries", "mode": "REPEATED"}, {"type": "STRING", "name": "account", "mode": "NULLABLE"}, {"type": "STRING", "name": "display_name", "mode": "NULLABLE"}, {"type": "STRING", "name": "name", "mode": "NULLABLE"}]
+[
+  {
+    "fields": [
+      {
+        "mode": "NULLABLE",
+        "name": "display_name",
+        "type": "STRING"
+      },
+      {
+        "mode": "NULLABLE",
+        "name": "property",
+        "type": "STRING"
+      }
+    ],
+    "mode": "REPEATED",
+    "name": "property_summaries",
+    "type": "RECORD"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "account",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "display_name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "STRING"
+  }
+]

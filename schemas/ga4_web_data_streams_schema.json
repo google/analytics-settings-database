@@ -1,1 +1,49 @@
-[{"type": "STRING", "name": "firebase_app_id", "mode": "NULLABLE"}, {"type": "STRING", "name": "display_name", "mode": "NULLABLE"}, {"type": "STRING", "name": "name", "mode": "NULLABLE"}, {"type": "STRING", "name": "update_time", "mode": "NULLABLE"}, {"type": "STRING", "name": "property_display_name", "mode": "NULLABLE"}, {"type": "STRING", "name": "property", "mode": "NULLABLE"}, {"type": "STRING", "name": "create_time", "mode": "NULLABLE"}, {"type": "STRING", "name": "measurement_id", "mode": "NULLABLE"}, {"type": "STRING", "name": "default_uri", "mode": "NULLABLE"}]
+[
+  {
+    "mode": "NULLABLE",
+    "name": "property",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "default_uri",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "display_name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "STRING"
+  },
+  {
+    "description": "bq-datetime",
+    "mode": "NULLABLE",
+    "name": "update_time",
+    "type": "TIMESTAMP"
+  },
+  {
+    "description": "bq-datetime",
+    "mode": "NULLABLE",
+    "name": "create_time",
+    "type": "TIMESTAMP"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "measurement_id",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "property_display_name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "firebase_app_id",
+    "type": "STRING"
+  }
+]

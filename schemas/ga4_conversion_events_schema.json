@@ -1,1 +1,38 @@
-[{"type": "STRING", "name": "name", "mode": "NULLABLE"}, {"type": "STRING", "name": "property_display_name", "mode": "NULLABLE"}, {"type": "BOOL", "name": "custom", "mode": "NULLABLE"}, {"type": "STRING", "name": "event_name", "mode": "NULLABLE"}, {"type": "BOOL", "name": "deletable", "mode": "NULLABLE"}, {"type": "STRING", "name": "property", "mode": "NULLABLE"}, {"type": "TIMESTAMP", "name": "create_time", "mode": "NULLABLE"}]
+[
+  {
+    "mode": "NULLABLE",
+    "name": "property",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "custom",
+    "type": "BOOLEAN"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "deletable",
+    "type": "BOOLEAN"
+  },
+  {
+    "description": "bq-datetime",
+    "mode": "NULLABLE",
+    "name": "create_time",
+    "type": "TIMESTAMP"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "property_display_name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "event_name",
+    "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "name",
+    "type": "STRING"
+  }
+]
