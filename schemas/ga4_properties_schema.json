@@ -4,12 +4,12 @@
       {
         "mode": "NULLABLE",
         "name": "state",
-        "type": "INTEGER"
+        "type": "STRING"
       },
       {
         "mode": "NULLABLE",
         "name": "consent",
-        "type": "INTEGER"
+        "type": "STRING"
       },
       {
         "mode": "NULLABLE",
@@ -31,7 +31,7 @@
       {
         "mode": "NULLABLE",
         "name": "event_data_retention",
-        "type": "INTEGER"
+        "type": "STRING"
       },
       {
         "mode": "NULLABLE",
@@ -51,7 +51,7 @@
   {
     "mode": "NULLABLE",
     "name": "service_level",
-    "type": "INTEGER"
+    "type": "STRING"
   },
   {
     "mode": "NULLABLE",
@@ -92,7 +92,7 @@
   {
     "mode": "NULLABLE",
     "name": "industry_category",
-    "type": "INTEGER"
+    "type": "STRING"
   },
   {
     "mode": "NULLABLE",

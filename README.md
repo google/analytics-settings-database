@@ -58,3 +58,14 @@ rm -rf analytics-settings-database && git clone https://github.com/google/analyt
 5. Add the service account email generated during the deployment process to your Google Analytics accounts.
 
 Upon completing the implementation process, the settings for your Google Analytics accounts that the API can access will be loaded into BigQuery daily at 11 PM. The frequency with which this happens can be adjusted by modifying the Cloud Scheduler Job created during the deployment process.
+
+
+## (Optional) Deploy Health Checkup Table
+
+This optional table combines several different tables together to quickly see important data related to GA4 properties. The table is set to be updated on a daily basis at 11:30 PM via a scheduled query. The table can be easily connected to a Data Studio dashboard to quickly visualize its data. To create the table and scheduled query, open Cloud Shell and enter the following:
+
+```
+
+cd analytics-settings-database/health\_checkup && bash deploy.sh
+
+```

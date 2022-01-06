@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,13 @@ import time
 import os
 from google.analytics.admin import AnalyticsAdminServiceClient
 from google.analytics.admin_v1alpha.types import ListPropertiesRequest
+from google.analytics.admin_v1alpha.types import LinkProposalInitiatingProduct
+from google.analytics.admin_v1alpha.types import LinkProposalState
+from google.analytics.admin_v1alpha.types import GoogleSignalsState
+from google.analytics.admin_v1alpha.types import GoogleSignalsConsent
+from google.analytics.admin_v1alpha.types import DataRetentionSettings
+from google.analytics.admin_v1alpha.types import IndustryCategory
+from google.analytics.admin_v1alpha.types import ServiceLevel
 import google.auth
 from google.cloud import bigquery
 from google.cloud import storage
@@ -81,31 +88,10 @@ def ga_settings_download(event):
   lists['ua_segments'] = get_ua_segments(management_api) or []
 
   # Get property level entities.
-  property_entities = get_ua_property_level_settings(
-      management_api, account_summaries)
-  lists['ua_custom_dimensions'] = property_entities['cds'] or []
-  lists['ua_custom_metrics'] = property_entities['cms'] or []
-  lists['ua_audiences'] = property_entities['audiences'] or []
-  lists['ua_google_ads_links'] = property_entities['google_ads_links'] or []
+  lists |= get_ua_property_level_settings(management_api, account_summaries)
 
   # Get GA4 entitity settings.
-  ga4_entities = list_ga4_entities(admin_api)
-  lists['ga4_account_summaries'] = ga4_entities['summaries'] or []
-  lists['ga4_accounts'] = ga4_entities['accounts'] or []
-  lists['ga4_properties'] = ga4_entities['properties'] or []
-  lists['ga4_android_app_data_streams'] = ga4_entities[
-      'android_app_data_streams'] or []
-  lists['ga4_measurement_protocol_secrets'] = ga4_entities[
-      'measurement_protocol_secrets'] or []
-  lists['ga4_conversion_events'] = ga4_entities['conversion_events'] or []
-  lists['ga4_custom_dimensions'] = ga4_entities['custom_dimensions'] or []
-  lists['ga4_custom_metrics'] = ga4_entities['custom_metrics'] or []
-  #  lists['ga4_dv360_link_proposals'] = ga4_entities['dv360_link_proposals'] or []
-  #  lists['ga4_dv360_links'] = ga4_entities['dv360_links'] or []
-  lists['ga4_firebase_links'] = ga4_entities['firebase_links'] or []
-  lists['ga4_google_ads_links'] = ga4_entities['google_ads_links'] or []
-  lists['ga4_ios_app_data_streams'] = ga4_entities['ios_app_data_streams'] or []
-  lists['ga4_web_data_streams'] = ga4_entities['web_data_streams'] or []
+  lists |= list_ga4_entities(admin_api)  
 
   for key in lists:
     data = lists[key]
@@ -245,10 +231,10 @@ def get_ua_property_level_settings(management_api, account_summaries):
     dimension, and custom metric settings.
   """
   lists = {
-      'audiences': [],
-      'google_ads_links': [],
-      'cds': [],
-      'cms': [],
+      'ua_audiences': [],
+      'ua_google_ads_links': [],
+      'ua_custom_dimensions': [],
+      'ua_custom_metrics': [],
   }
   for account in account_summaries:
     if account['webProperties']:
@@ -256,25 +242,25 @@ def get_ua_property_level_settings(management_api, account_summaries):
         returned_audience_value = (
             management_api.management().remarketingAudience().list(
                 accountId=account['id'], webPropertyId=prop['id']).execute())
-        lists['audiences'].extend(returned_audience_value['items'])
+        lists['ua_audiences'].extend(returned_audience_value['items'])
         time.sleep(REQUEST_DELAY)
 
         returned_al_value = (
             management_api.management().webPropertyAdWordsLinks().list(
                 accountId=account['id'], webPropertyId=prop['id']).execute())
-        lists['google_ads_links'].extend(returned_al_value['items'])
+        lists['ua_google_ads_links'].extend(returned_al_value['items'])
         time.sleep(REQUEST_DELAY)
 
         returned_cd_value = (
             management_api.management().customDimensions().list(
                 accountId=account['id'], webPropertyId=prop['id']).execute())
-        lists['cds'].extend(returned_cd_value['items'])
+        lists['ua_custom_dimensions'].extend(returned_cd_value['items'])
         time.sleep(REQUEST_DELAY)
 
         returned_cm_value = (
             management_api.management().customMetrics().list(
                 accountId=account['id'], webPropertyId=prop['id']).execute())
-        lists['cms'].extend(returned_cm_value['items'])
+        lists['ua_custom_metrics'].extend(returned_cm_value['items'])
         time.sleep(REQUEST_DELAY)
   return lists
 
@@ -289,20 +275,20 @@ def list_ga4_entities(admin_api):
     A dictionary of GA4 entity setting lists.
   """
   entities = {
-      'summaries': [],
-      'accounts': [],
-      'properties': [],
-      'android_app_data_streams': [],
-      'measurement_protocol_secrets': [],
-      'conversion_events': [],
-      'custom_dimensions': [],
-      'custom_metrics': [],
-      'dv360_link_proposals': [],
-      'dv360_links': [],
-      'firebase_links': [],
-      'google_ads_links': [],
-      'ios_app_data_streams': [],
-      'web_data_streams': []
+      'ga4_account_summaries': [],
+      'ga4_accounts': [],
+      'ga4_properties': [],
+      'ga4_android_app_data_streams': [],
+      'ga4_measurement_protocol_secrets': [],
+      'ga4_conversion_events': [],
+      'ga4_custom_dimensions': [],
+      'ga4_custom_metrics': [],
+      'ga4_dv360_link_proposals': [],
+      'ga4_dv360_links': [],
+      'ga4_firebase_links': [],
+      'ga4_google_ads_links': [],
+      'ga4_ios_app_data_streams': [],
+      'ga4_web_data_streams': []
   }
   for account_summary in admin_api.list_account_summaries():
     a_dict = {
@@ -317,7 +303,7 @@ def list_ga4_entities(admin_api):
           'display_name': property_summary.display_name
       }
       a_dict['property_summaries'].append(p_dict)
-    entities['summaries'].append(a_dict)
+    entities['ga4_account_summaries'].append(a_dict)
   time.sleep(REQUEST_DELAY)
   for account in admin_api.list_accounts():
     account_dict = {
@@ -328,9 +314,9 @@ def list_ga4_entities(admin_api):
         'region_code': account.region_code,
         'deleted': account.deleted
     }
-    entities['accounts'].append(account_dict)
+    entities['ga4_accounts'].append(account_dict)
   time.sleep(REQUEST_DELAY)
-  for account_summary in entities['summaries']:
+  for account_summary in entities['ga4_account_summaries']:
     prop_request = ListPropertiesRequest(
         filter=f"parent:{account_summary['account']}")
     for prop in admin_api.list_properties(prop_request):
@@ -340,34 +326,38 @@ def list_ga4_entities(admin_api):
       time.sleep(REQUEST_DELAY)
       google_signals_settings = admin_api.get_google_signals_settings(
           name=(prop.name + '/googleSignalsSettings'))
+      ic_enum = prop.industry_category
+      sl_enum = prop.service_level
+      gss_state_enum = google_signals_settings.state
+      gss_consent_enum = google_signals_settings.consent
+      edr_enum = data_retention_settings.event_data_retention
       prop_dict = {
           'name': prop.name,
           'create_time': prop.create_time,
           'update_time': prop.update_time,
           'parent': prop.parent,
           'display_name': prop.display_name,
-          'industry_category': prop.industry_category,
+          'industry_category': IndustryCategory(ic_enum).name,
           'time_zone': prop.time_zone,
           'currency_code': prop.currency_code,
-          'service_level': prop.service_level,
+          'service_level': ServiceLevel(sl_enum).name,
           'delete_time': prop.delete_time,
           'expire_time': prop.expire_time,
           'account': account_summary['account'],
           'data_sharing_settings': {
-              'name':
-                  data_retention_settings.name,
-              'event_data_retention':
-                  data_retention_settings.event_data_retention,
+              'name': data_retention_settings.name,
+              'event_data_retention': (DataRetentionSettings
+                                      .RetentionDuration(edr_enum).name),
               'reset_user_data_on_new_activity':
                   data_retention_settings.reset_user_data_on_new_activity
           },
           'google_signals_settings': {
               'name': google_signals_settings.name,
-              'state': google_signals_settings.state,
-              'consent': google_signals_settings.consent
+              'state': GoogleSignalsState(gss_state_enum).name,
+              'consent': GoogleSignalsConsent(gss_consent_enum).name
           }
       }
-      entities['properties'].append(prop_dict)
+      entities['ga4_properties'].append(prop_dict)
     for property_summary in account_summary['property_summaries']:
       time.sleep(REQUEST_DELAY)
       for android_data_stream in admin_api.list_android_app_data_streams(
@@ -382,7 +372,7 @@ def list_ga4_entities(admin_api):
             'property': property_summary['property'],
             'property_display_name': property_summary['display_name']
         }
-        entities['android_app_data_streams'].append(android_data_stream_dict)
+        entities['ga4_android_app_data_streams'].append(android_data_stream_dict)
         time.sleep(REQUEST_DELAY)
         for mps in admin_api.list_measurement_protocol_secrets(
             parent=android_data_stream_dict['name']):
@@ -395,7 +385,7 @@ def list_ga4_entities(admin_api):
               'property': property_summary['property'],
               'property_display_name': property_summary['display_name']
           }
-          entities['measurement_protocol_secrets'].append(mps_dict)
+          entities['ga4_measurement_protocol_secrets'].append(mps_dict)
       time.sleep(REQUEST_DELAY)
       for ios_data_stream in admin_api.list_ios_app_data_streams(
           parent=property_summary['property']):
@@ -409,7 +399,7 @@ def list_ga4_entities(admin_api):
             'property': property_summary['property'],
             'property_display_name': property_summary['display_name']
         }
-        entities['ios_app_data_streams'].append(ios_data_stream_dict)
+        entities['ga4_ios_app_data_streams'].append(ios_data_stream_dict)
         time.sleep(REQUEST_DELAY)
         for mps in admin_api.list_measurement_protocol_secrets(
             parent=ios_data_stream_dict['name']):
@@ -422,13 +412,10 @@ def list_ga4_entities(admin_api):
               'property': property_summary['property'],
               'property_display_name': property_summary['display_name']
           }
-          entities['measurement_protocol_secrets'].append(mps_dict)
+          entities['ga4_measurement_protocol_secrets'].append(mps_dict)
       time.sleep(REQUEST_DELAY)
       for web_data_stream in admin_api.list_web_data_streams(
           parent=property_summary['property']):
-#        time.sleep(REQUEST_DELAY)
-#        enhanced_settings = admin_api.get_enhanced_measurement_settngs(
-#            name=(web_data_stream.name + '/enhancedMeasurementSettings'))
         web_data_stream_dict = {
             'name': web_data_stream.name,
             'firebase_app_id': web_data_stream.firebase_app_id,
@@ -438,35 +425,9 @@ def list_ga4_entities(admin_api):
             'display_name': web_data_stream.display_name,
             'default_uri': web_data_stream.default_uri,
             'property': property_summary['property'],
-            'property_display_name': property_summary['display_name']#,
-#            'enhanced_measurement_settings': {
-#                'name':
-#                    enhanced_settings.name,
-#                'stream_enabled':
-#                    enhanced_settings.stream_enabled,
-#                'page_views_enabled':
-#                    enhanced_settings.page_views_enabled,
-#                'scrolls_enabled':
-#                    enhanced_settings.scrolls_enabled,
-#                'outbound_link_clicks_enabled':
-#                    enhanced_settings.outbound_link_clicks_enabled,
-#                'site_seearch_eenabled':
-#                    enhanced_settings.site_seearch_eenabled,
-#                'video_engagement_enabled':
-#                    enhanced_settings.video_engagement_enabled,
-#                'file_downloads_enabled':
-#                    enhanced_settings.file_downloads_enabled,
-#                'page_loads_enabled':
-#                    enhanced_settings.page_loads_enabled,
-#                'page_changes_enabled':
-#                    enhanced_settings.page_changes_enabled,
-#                'search_query_parameter':
-#                    enhanced_settings.search_query_parameter,
-#                'uri_query_parameter':
-#                    enhanced_settings.uri_query_parameter
-#            }
+            'property_display_name': property_summary['display_name']
         }
-        entities['web_data_streams'].append(web_data_stream_dict)
+        entities['ga4_web_data_streams'].append(web_data_stream_dict)
         time.sleep(REQUEST_DELAY)
         for mps in admin_api.list_measurement_protocol_secrets(
             parent=web_data_stream_dict['name']):
@@ -479,7 +440,7 @@ def list_ga4_entities(admin_api):
               'property': property_summary['property'],
               'property_display_name': property_summary['display_name']
           }
-          entities['measurement_protocol_secrets'].append(mps_dict)
+          entities['ga4_measurement_protocol_secrets'].append(mps_dict)
           time.sleep(REQUEST_DELAY)
       time.sleep(REQUEST_DELAY)
       for event in admin_api.list_conversion_events(
@@ -493,7 +454,7 @@ def list_ga4_entities(admin_api):
             'property': property_summary['property'],
             'property_display_name': property_summary['display_name']
         }
-        entities['conversion_events'].append(event_dict)
+        entities['ga4_conversion_events'].append(event_dict)
       time.sleep(REQUEST_DELAY)
       for cd in admin_api.list_custom_dimensions(
           parent=property_summary['property']):
@@ -507,7 +468,7 @@ def list_ga4_entities(admin_api):
             'property': property_summary['property'],
             'property_display_name': property_summary['display_name']
         }
-        entities['custom_dimensions'].append(cd_dict)
+        entities['ga4_custom_dimensions'].append(cd_dict)
       time.sleep(REQUEST_DELAY)
       for cm in admin_api.list_custom_metrics(
           parent=property_summary['property']):
@@ -521,7 +482,7 @@ def list_ga4_entities(admin_api):
             'property': property_summary['property'],
             'property_display_name': property_summary['display_name']
         }
-        entities['custom_metrics'].append(cm_dict)
+        entities['ga4_custom_metrics'].append(cm_dict)
       time.sleep(REQUEST_DELAY)
       for link in admin_api.list_google_ads_links(
           parent=property_summary['property']):
@@ -536,7 +497,7 @@ def list_ga4_entities(admin_api):
             'property': property_summary['property'],
             'property_display_name': property_summary['display_name']
         }
-        entities['google_ads_links'].append(link_dict)
+        entities['ga4_google_ads_links'].append(link_dict)
       time.sleep(REQUEST_DELAY)
       for link in admin_api.list_firebase_links(
           parent=property_summary['property']):
@@ -547,51 +508,55 @@ def list_ga4_entities(admin_api):
             'property': property_summary['property'],
             'property_display_name': property_summary['display_name']
         }
-        entities['firebase_links'].append(link_dict)
-#      time.sleep(REQUEST_DELAY)
-#      for link in admin_api.list_display_video_360_advertiser_links(
-#          parent=property_summary['property']):
-#        link_dict = {
-#            'name': link.name,
-#            'advertiser_id': link.advertiser_id,
-#            'advertiser_display_name': link.advertiser_display_name,
-#            'ads_personalization_enabled': link.ads_personalization_enabled,
-#            'campaign_data_sharing_enabled': link.campaign_data_sharing_enabled,
-#            'cost_data_sharing_enabled': link.cost_data_sharing_enabled,
-#            'property': property_summary['property'],
-#            'property_display_name': property_summary['display_name']
-#        }
-#        entities['dv360_links'].append(link_dict)
-#      time.sleep(REQUEST_DELAY)
-#      for proposal in (
-#          admin_api.list_display_video_360_advertiser_link_proposals(
-#              parent=property_summary['property'])):
-#        proposal_dict = {
-#            'name':
-#                proposal.name,
-#            'advertiser_id':
-#                proposal.adveriser_id,
-#            'link_proposal_status_details': {
-#                'link_proposal_initiating_product':
-#                    proposal.link_proposal_status_details
-#                    .link_proposal_initiating_product,
-#                'requestor_email':
-#                    proposal.link_proposal_status_details.requestor_email,
-#                'link_proposal_state':
-#                    proposal.link_proposal_status_details.link_proposal_state
-#            },
-#            'advertiser_display_name':
-#                proposal.advertiser_display_name,
-#            'validation_email':
-#                proposal.validation_email,
-#            'ads_personalization_enabled':
-#                proposal.ads_personalization_enabled,
-#            'campaign_data_sharing_enabled':
-#                proposal.campaign_data_sharing_enabled,
-#            'cost_data_sharing_enabled':
-#                proposal.cost_data_sharing_enabled
-#        }
-#        entities['dv360_link_proposals'].append(proposal_dict)
+        entities['ga4_firebase_links'].append(link_dict)
+      time.sleep(REQUEST_DELAY)
+      for link in admin_api.list_display_video360_advertiser_links(
+          parent=property_summary['property']):
+        link_dict = {
+            'name': link.name,
+            'advertiser_id': link.advertiser_id,
+            'advertiser_display_name': link.advertiser_display_name,
+            'ads_personalization_enabled': link.ads_personalization_enabled,
+            'campaign_data_sharing_enabled': link.campaign_data_sharing_enabled,
+            'cost_data_sharing_enabled': link.cost_data_sharing_enabled,
+            'property': property_summary['property'],
+            'property_display_name': property_summary['display_name']
+        }
+        entities['ga4_dv360_links'].append(link_dict)
+      time.sleep(REQUEST_DELAY)
+      for proposal in (
+          admin_api.list_display_video360_advertiser_link_proposals(
+              parent=property_summary['property'])):
+        lpip_enum = (proposal.link_proposal_status_details
+                                  .link_proposal_initiating_product)
+        lps_enum = (proposal.link_proposal_status_details
+                                   .link_proposal_state)
+        proposals_dict = {
+            'name':
+                proposal.name,
+            'advertiser_id':
+                proposal.adveriser_id,
+            'link_proposal_status_details': {
+                'link_proposal_initiating_product':
+                    LinkProposalInitiatingProduct(lpip_enum).name,
+                'requestor_email':
+                    proposal.link_proposal_status_details.requestor_email,
+                'link_proposal_state': LinkProposalState(lps_enum).name
+            },
+            'advertiser_display_name':
+                proposal.advertiser_display_name,
+            'validation_email':
+                proposal.validation_email,
+            'ads_personalization_enabled':
+                proposal.ads_personalization_enabled,
+            'campaign_data_sharing_enabled':
+                proposal.campaign_data_sharing_enabled,
+            'cost_data_sharing_enabled':
+                proposal.cost_data_sharing_enabled,
+            'property': property_summary['property'],
+            'property_display_name': property_summary['display_name']
+        }
+        entities['ga4_dv360_link_proposals'].append(proposal_dict)
   return entities
 
 
