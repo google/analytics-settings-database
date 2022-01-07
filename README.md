@@ -66,6 +66,6 @@ This optional table combines several different tables together to quickly see im
 
 ```
 
-cd analytics-settings-database/health\_checkup && bash deploy.sh
+cd analytics-settings-database/health_checkup && bash deploy.sh
 
 ```
