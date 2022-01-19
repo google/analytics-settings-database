@@ -183,8 +183,8 @@ bq mk -t --time_partitioning_type=DAY \
 	--schema=./ga4_properties_schema.json \
 	$project_id:analytics_settings_database.ga4_properties
 bq mk -t --time_partitioning_type=DAY \
-	--schema=./ga4_android_app_data_streams_schema.json \
-	$project_id:analytics_settings_database.ga4_android_app_data_streams
+	--schema=./ga4_data_streams_schema.json \
+	$project_id:analytics_settings_database.ga4_data_streams
 bq mk -t --time_partitioning_type=DAY \
 	--schema=./ga4_measurement_protocol_secrets_schema.json \
 	$project_id:analytics_settings_database.ga4_measurement_protocol_secrets
@@ -204,16 +204,10 @@ bq mk -t --time_partitioning_type=DAY \
 	--schema=./ga4_google_ads_links_schema.json \
 	$project_id:analytics_settings_database.ga4_google_ads_links
 bq mk -t --time_partitioning_type=DAY \
-	--schema=./ga4_ios_app_data_streams_schema.json \
-	$project_id:analytics_settings_database.ga4_ios_app_data_streams
-bq mk -t --time_partitioning_type=DAY \
-	--schema=./ga4_web_data_streams_schema.json \
-	$project_id:analytics_settings_database.ga4_web_data_streams
-bq mk -t --time_partitioning_type=DAY \
 	--schema=./ga4_dv360_link_proposals_schema.json \
 	$project_id:analytics_settings_database.ga4_dv360_link_proposals
 bq mk -t --time_partitioning_type=DAY \
-	--schema=./ga4_dv360_links.json \
+	--schema=./ga4_dv360_links_schema.json \
 	$project_id:analytics_settings_database.ga4_dv360_links
 cd ..
 echo "BigQuery tables created."

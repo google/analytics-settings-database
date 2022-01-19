@@ -25,6 +25,7 @@ from google.analytics.admin_v1alpha.types import GoogleSignalsConsent
 from google.analytics.admin_v1alpha.types import DataRetentionSettings
 from google.analytics.admin_v1alpha.types import IndustryCategory
 from google.analytics.admin_v1alpha.types import ServiceLevel
+from google.analytics.admin_v1alpha.types import DataStream
 import google.auth
 from google.cloud import bigquery
 from google.cloud import storage
@@ -278,7 +279,7 @@ def list_ga4_entities(admin_api):
       'ga4_account_summaries': [],
       'ga4_accounts': [],
       'ga4_properties': [],
-      'ga4_android_app_data_streams': [],
+      'ga4_data_streams': [],
       'ga4_measurement_protocol_secrets': [],
       'ga4_conversion_events': [],
       'ga4_custom_dimensions': [],
@@ -286,9 +287,7 @@ def list_ga4_entities(admin_api):
       'ga4_dv360_link_proposals': [],
       'ga4_dv360_links': [],
       'ga4_firebase_links': [],
-      'ga4_google_ads_links': [],
-      'ga4_ios_app_data_streams': [],
-      'ga4_web_data_streams': []
+      'ga4_google_ads_links': []
   }
   for account_summary in admin_api.list_account_summaries():
     a_dict = {
@@ -360,88 +359,74 @@ def list_ga4_entities(admin_api):
       entities['ga4_properties'].append(prop_dict)
     for property_summary in account_summary['property_summaries']:
       time.sleep(REQUEST_DELAY)
-      for android_data_stream in admin_api.list_android_app_data_streams(
+      for data_stream in admin_api.list_data_streams(
           parent=property_summary['property']):
-        android_data_stream_dict = {
-            'name': android_data_stream.name,
-            'firebase_app_id': android_data_stream.firebase_app_id,
-            'create_time': android_data_stream.create_time,
-            'update_time': android_data_stream.update_time,
-            'package_name': android_data_stream.package_name,
-            'display_name': android_data_stream.display_name,
+        data_stream_dict = {
+            'name': data_stream.name,
+            'type': DataStream.DataStreamType(data_stream.type_).name,
+            'display_name': data_stream.display_name,
+            'create_time': data_stream.create_time,
+            'update_time': data_stream.update_time,
             'property': property_summary['property'],
             'property_display_name': property_summary['display_name']
         }
-        entities['ga4_android_app_data_streams'].append(android_data_stream_dict)
-        time.sleep(REQUEST_DELAY)
-        for mps in admin_api.list_measurement_protocol_secrets(
-            parent=android_data_stream_dict['name']):
-          mps_dict = {
-              'name': mps.name,
-              'display_name': mps.display_name,
-              'secret_value': mps.secret_value,
-              'stream_name': android_data_stream_dict['name'],
-              'type': 'android app',
-              'property': property_summary['property'],
-              'property_display_name': property_summary['display_name']
+        if data_stream.web_stream_data != None:
+          data_stream_dict['web_stream_data'] = {
+            'measurment_id': data_stream.web_stream_data.measurement_id,
+            'firebase_app_id': data_stream.web_stream_data.firebase_app_id,
+            'default_uri': data_stream.web_stream_data.default_uri
           }
-          entities['ga4_measurement_protocol_secrets'].append(mps_dict)
-      time.sleep(REQUEST_DELAY)
-      for ios_data_stream in admin_api.list_ios_app_data_streams(
-          parent=property_summary['property']):
-        ios_data_stream_dict = {
-            'name': ios_data_stream.name,
-            'firebase_app_id': ios_data_stream.firebase_app_id,
-            'create_time': ios_data_stream.create_time,
-            'update_time': ios_data_stream.update_time,
-            'bundle_id': ios_data_stream.bundle_id,
-            'display_name': ios_data_stream.display_name,
-            'property': property_summary['property'],
-            'property_display_name': property_summary['display_name']
-        }
-        entities['ga4_ios_app_data_streams'].append(ios_data_stream_dict)
-        time.sleep(REQUEST_DELAY)
-        for mps in admin_api.list_measurement_protocol_secrets(
-            parent=ios_data_stream_dict['name']):
-          mps_dict = {
-              'name': mps.name,
-              'display_name': mps.display_name,
-              'secret_value': mps.secret_value,
-              'stream_name': ios_data_stream_dict['name'],
-              'type': 'ios app',
-              'property': property_summary['property'],
-              'property_display_name': property_summary['display_name']
-          }
-          entities['ga4_measurement_protocol_secrets'].append(mps_dict)
-      time.sleep(REQUEST_DELAY)
-      for web_data_stream in admin_api.list_web_data_streams(
-          parent=property_summary['property']):
-        web_data_stream_dict = {
-            'name': web_data_stream.name,
-            'firebase_app_id': web_data_stream.firebase_app_id,
-            'create_time': web_data_stream.create_time,
-            'update_time': web_data_stream.update_time,
-            'measurement_id': web_data_stream.measurement_id,
-            'display_name': web_data_stream.display_name,
-            'default_uri': web_data_stream.default_uri,
-            'property': property_summary['property'],
-            'property_display_name': property_summary['display_name']
-        }
-        entities['ga4_web_data_streams'].append(web_data_stream_dict)
-        time.sleep(REQUEST_DELAY)
-        for mps in admin_api.list_measurement_protocol_secrets(
-            parent=web_data_stream_dict['name']):
-          mps_dict = {
-              'name': mps.name,
-              'display_name': mps.display_name,
-              'secret_value': mps.secret_value,
-              'stream_name': web_data_stream_dict['name'],
-              'type': 'web',
-              'property': property_summary['property'],
-              'property_display_name': property_summary['display_name']
-          }
-          entities['ga4_measurement_protocol_secrets'].append(mps_dict)
           time.sleep(REQUEST_DELAY)
+          for mps in admin_api.list_measurement_protocol_secrets(
+              parent=data_stream.name):
+            mps_dict = {
+                'name': mps.name,
+                'display_name': mps.display_name,
+                'secret_value': mps.secret_value,
+                'stream_name': data_stream.name,
+                'type': DataStream.DataStreamType(data_stream.type_).name,
+                'property': property_summary['property'],
+                'property_display_name': property_summary['display_name']
+            }
+            entities['ga4_measurement_protocol_secrets'].append(mps_dict)
+        if data_stream.android_app_stream_data != None:
+          data_stream_dict['android_app_stream_data'] = {
+            'firebase_app_id': (data_stream
+                               .android_app_stream_data.firebase_app_id),
+            'package_name': data_stream.android_app_stream_data.package_name
+          }
+          time.sleep(REQUEST_DELAY)
+          for mps in admin_api.list_measurement_protocol_secrets(
+              parent=data_stream.name):
+            mps_dict = {
+                'name': mps.name,
+                'display_name': mps.display_name,
+                'secret_value': mps.secret_value,
+                'stream_name': data_stream.name,
+                'type': DataStream.DataStreamType(data_stream.type_).name,
+                'property': property_summary['property'],
+                'property_display_name': property_summary['display_name']
+            }
+            entities['ga4_measurement_protocol_secrets'].append(mps_dict)
+        if data_stream.ios_app_stream_data != None:
+          data_stream_dict['ios_app_stream_data'] = {
+            'firebase_app_id': data_stream.ios_app_stream_data.firebase_app_id,
+            'bundle_id': data_stream.ios_app_stream_data.bundle_id
+          }
+          time.sleep(REQUEST_DELAY)
+          for mps in admin_api.list_measurement_protocol_secrets(
+              parent=data_stream.name):
+            mps_dict = {
+                'name': mps.name,
+                'display_name': mps.display_name,
+                'secret_value': mps.secret_value,
+                'stream_name': data_stream.name,
+                'type': DataStream.DataStreamType(data_stream.type_).name,
+                'property': property_summary['property'],
+                'property_display_name': property_summary['display_name']
+            }
+            entities['ga4_measurement_protocol_secrets'].append(mps_dict)
+        entities['ga4_data_streams'].append(data_stream_dict)
       time.sleep(REQUEST_DELAY)
       for event in admin_api.list_conversion_events(
           parent=property_summary['property']):

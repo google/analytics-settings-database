@@ -19,12 +19,12 @@ SELECT
   property_summaries.property AS property_id,
   properties.service_level as standard_or_360,
   properties.google_signals_state as google_signals_state,
-  (CASE WHEN COUNT(DISTINCT web_data_streams.id) > 0 THEN TRUE ELSE FALSE END) AS web_streams_created,
-  COUNT(DISTINCT web_data_streams.id) AS number_of_web_streams,
-  (CASE WHEN COUNT(DISTINCT android_data_streams.id) > 0 THEN TRUE ELSE FALSE END) AS android_streams_created,
-  COUNT(DISTINCT android_data_streams.id) AS number_of_android_streams,
-  (CASE WHEN COUNT(DISTINCT ios_data_streams.id) > 0 THEN TRUE ELSE FALSE END) AS ios_streams_created,
-  COUNT(DISTINCT ios_data_streams.id) AS number_of_ios_streams,
+  SUM(DISTINCT CASE WHEN data_streams.type = 'WEB_DATA_STREAM' THEN 1 ELSE 0 END) as number_of_web_streams,
+  SUM(DISTINCT CASE WHEN data_streams.type = 'ANDROID_APP_DATA_STREAM' THEN 1 ELSE 0 END) as number_of_android_app_streams,
+  SUM(DISTINCT CASE WHEN data_streams.type = 'IOS_APP_DATA_STREAM' THEN 1 ELSE 0 END) as number_of_ios_app_streams,
+  (CASE WHEN SUM(DISTINCT CASE WHEN data_streams.type = 'WEB_DATA_STREAM' THEN 1 ELSE 0 END) > 0 THEN TRUE ELSE FALSE END) AS web_streams_created,
+  (CASE WHEN SUM(DISTINCT CASE WHEN data_streams.type = 'ANDROID_APP_DATA_STREAM' THEN 1 ELSE 0 END) > 0 THEN TRUE ELSE FALSE END) AS android_streams_created,
+  (CASE WHEN SUM(DISTINCT CASE WHEN data_streams.type = 'IOS_APP_DATA_STREAM' THEN 1 ELSE 0 END) > 0 THEN TRUE ELSE FALSE END) AS ios_streams_created,
   (CASE WHEN SUM(conversion_events.is_custom) > 0 THEN TRUE ELSE FALSE END) AS custom_conversions_created,
   SUM(conversion_events.is_custom) AS number_of_custom_conversion_events,
   (CASE WHEN COUNT(DISTINCT google_ads_links.customer_id) > 0 THEN TRUE ELSE FALSE END) AS google_ads_linked,
@@ -56,33 +56,14 @@ ON
 LEFT JOIN (
   SELECT
     property AS property_id,
+    type,
     name AS id
   FROM
-    analytics_settings_database.ga4_web_data_streams
+    analytics_settings_database.ga4_data_streams
   WHERE
-    DATE(_PARTITIONTIME) = CURRENT_DATE()) AS web_data_streams
+    DATE(_PARTITIONTIME) = CURRENT_DATE()) AS data_streams
 ON
-  property_summaries.property = web_data_streams.property_id
-LEFT JOIN (
-  SELECT
-    property AS property_id,
-    name AS id
-  FROM
-    analytics_settings_database.ga4_ios_app_data_streams
-  WHERE
-    DATE(_PARTITIONTIME) = CURRENT_DATE()) AS ios_data_streams
-ON
-  property_summaries.property = ios_data_streams.property_id
-LEFT JOIN (
-  SELECT
-    property AS property_id,
-    name AS id
-  FROM
-    analytics_settings_database.ga4_android_app_data_streams
-  WHERE
-    DATE(_PARTITIONTIME) = CURRENT_DATE()) AS android_data_streams
-ON
-  property_summaries.property = android_data_streams.property_id
+  property_summaries.property = data_streams.property_id
 LEFT JOIN (
   SELECT
     property AS property_id,
