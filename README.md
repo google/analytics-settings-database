@@ -69,3 +69,5 @@ This optional table combines several different tables together to quickly see im
 cd analytics-settings-database/health_checkup && bash deploy.sh
 
 ```
+
+Here is a [template Google Data Studio dashboard](https://datastudio.google.com/c/reporting/b2569a98-dc81-4306-9833-e88ce7b8aa35/page/geseC/preview) visualization of the health checkup table. You can replace the template dashboard data source with your own. You must join [this group](https://groups.google.com/g/analytics-settings-database-users) to access the template dashboard.
