@@ -16,26 +16,16 @@
 import json
 import time
 import os
+import humps
+import google.auth
 from google.analytics.admin import AnalyticsAdminServiceClient
 from google.analytics.admin_v1alpha.types import ListPropertiesRequest
-from google.analytics.admin_v1alpha.types import LinkProposalInitiatingProduct
-from google.analytics.admin_v1alpha.types import LinkProposalState
-from google.analytics.admin_v1alpha.types import GoogleSignalsState
-from google.analytics.admin_v1alpha.types import GoogleSignalsConsent
-from google.analytics.admin_v1alpha.types import DataRetentionSettings
-from google.analytics.admin_v1alpha.types import IndustryCategory
-from google.analytics.admin_v1alpha.types import ServiceLevel
-from google.analytics.admin_v1alpha.types import DataStream
-import google.auth
+from google.protobuf.json_format import MessageToDict
 from google.cloud import bigquery
-from google.cloud import storage
 from googleapiclient.discovery import build
 
 # Construct a BigQuery client object.
 bigquery_client = bigquery.Client()
-
-# Construct a Cloud Storage client object.
-storage_client = storage.Client()
 
 SERVICE_ACCOUNT_FILE = 'svc_key.json'
 GA_MANAGEMENT_API_NAME = 'analytics'
@@ -45,12 +35,8 @@ GA_SCOPES = [
     'https://www.googleapis.com/auth/analytics'
 ]
 DATASET_ID = 'analytics_settings_database'
-BUCKET_NAME = os.environ.get('BUCKET_NAME')
 
 REQUEST_DELAY = .1
-
-bucket = storage_client.get_bucket(BUCKET_NAME)
-
 
 def ga_settings_download(event):
   """Retrieve GA settings and save them to a series of BigQuery Tables.
@@ -97,8 +83,10 @@ def ga_settings_download(event):
   for key in lists:
     data = lists[key]
     if data:  # If a list has data, then it will be written to BigQuery.
-      create_gcs_json_file(data, key)  # Create the Cloud Storage JSON file.
-      save_to_bigquery(key)  # Save the JSON file to a BigQuery table.
+      errors = bigquery_client.insert_rows_json(f'{DATASET_ID}.{key}', data)
+      if errors != []:
+        f_errors = format(errors)
+        print(f'{key}: Encountered errors while inserting rows: {f_errors}')
   return 'complete'
 
 
@@ -287,294 +275,154 @@ def list_ga4_entities(admin_api):
       'ga4_dv360_link_proposals': [],
       'ga4_dv360_links': [],
       'ga4_firebase_links': [],
-      'ga4_google_ads_links': []
+      'ga4_google_ads_links': [],
+      'ga4_audiences': []
   }
+  # Account summaries
   for account_summary in admin_api.list_account_summaries():
-    a_dict = {
-        'name': account_summary.name,
-        'display_name': account_summary.display_name,
-        'account': account_summary.account,
-        'property_summaries': []
-    }
-    for property_summary in account_summary.property_summaries:
-      p_dict = {
-          'property': property_summary.property,
-          'display_name': property_summary.display_name
-      }
-      a_dict['property_summaries'].append(p_dict)
-    entities['ga4_account_summaries'].append(a_dict)
+    summaries_dict = humps.decamelize(MessageToDict(account_summary._pb))
+    entities['ga4_account_summaries'].append(summaries_dict)
   time.sleep(REQUEST_DELAY)
+  # Accounts
   for account in admin_api.list_accounts():
-    account_dict = {
-        'name': account.name,
-        'display_name': account.display_name,
-        'create_time': account.create_time,
-        'update_time': account.update_time,
-        'region_code': account.region_code,
-        'deleted': account.deleted
-    }
+    account_dict = humps.decamelize(MessageToDict(account._pb))
     entities['ga4_accounts'].append(account_dict)
   time.sleep(REQUEST_DELAY)
+  # Properties, data retention settings, and Google Signals settings
   for account_summary in entities['ga4_account_summaries']:
     prop_request = ListPropertiesRequest(
-        filter=f"parent:{account_summary['account']}")
+        filter=f"ancestor:{account_summary['account']}")
+    # Properties
     for prop in admin_api.list_properties(prop_request):
+      property_dict = humps.decamelize(MessageToDict(prop._pb))
       time.sleep(REQUEST_DELAY)
+      # Set data retention settings for each property
       data_retention_settings = admin_api.get_data_retention_settings(
           name=(prop.name + '/dataRetentionSettings'))
+      data_retention_dict = humps.decamelize(
+        MessageToDict(data_retention_settings._pb))
+      property_dict['data_sharing_settings'] = data_retention_dict
       time.sleep(REQUEST_DELAY)
+      # Set Google Signals settings for each property
       google_signals_settings = admin_api.get_google_signals_settings(
           name=(prop.name + '/googleSignalsSettings'))
-      ic_enum = prop.industry_category
-      sl_enum = prop.service_level
-      gss_state_enum = google_signals_settings.state
-      gss_consent_enum = google_signals_settings.consent
-      edr_enum = data_retention_settings.event_data_retention
-      prop_dict = {
-          'name': prop.name,
-          'create_time': prop.create_time,
-          'update_time': prop.update_time,
-          'parent': prop.parent,
-          'display_name': prop.display_name,
-          'industry_category': IndustryCategory(ic_enum).name,
-          'time_zone': prop.time_zone,
-          'currency_code': prop.currency_code,
-          'service_level': ServiceLevel(sl_enum).name,
-          'delete_time': prop.delete_time,
-          'expire_time': prop.expire_time,
-          'account': account_summary['account'],
-          'data_sharing_settings': {
-              'name': data_retention_settings.name,
-              'event_data_retention': (DataRetentionSettings
-                                      .RetentionDuration(edr_enum).name),
-              'reset_user_data_on_new_activity':
-                  data_retention_settings.reset_user_data_on_new_activity
-          },
-          'google_signals_settings': {
-              'name': google_signals_settings.name,
-              'state': GoogleSignalsState(gss_state_enum).name,
-              'consent': GoogleSignalsConsent(gss_consent_enum).name
-          }
-      }
-      entities['ga4_properties'].append(prop_dict)
-    for property_summary in account_summary['property_summaries']:
+      google_signals_dict = humps.decamelize(
+        MessageToDict(google_signals_settings._pb))
+      property_dict['google_signals_settings'] = google_signals_dict
       time.sleep(REQUEST_DELAY)
+      # Set Attribution settings for each property
+      attribution_settings = admin_api.get_attribution_settings(
+          name=(prop.name + '/attributionSettings'))
+      attribution_dict = humps.decamelize(
+        MessageToDict(attribution_settings._pb))
+      property_dict['attribution_settings'] = attribution_dict
+      # Append property to list of properties
+      entities['ga4_properties'].append(property_dict)
+    time.sleep(REQUEST_DELAY)
+    # Property level settings
+    for property_summary in account_summary['property_summaries']:
+      property_path = property_summary['property']
+      property_display_name = property_summary['display_name']
+      # Data streams
       for data_stream in admin_api.list_data_streams(
-          parent=property_summary['property']):
-        data_stream_dict = {
-            'name': data_stream.name,
-            'type': DataStream.DataStreamType(data_stream.type_).name,
-            'display_name': data_stream.display_name,
-            'create_time': data_stream.create_time,
-            'update_time': data_stream.update_time,
-            'property': property_summary['property'],
-            'property_display_name': property_summary['display_name']
-        }
+          parent=property_path):
+        data_stream_dict = format_resource_dict(
+          data_stream, property_path, property_display_name)
+        time.sleep(REQUEST_DELAY)
         if data_stream.web_stream_data != None:
-          data_stream_dict['web_stream_data'] = {
-            'measurment_id': data_stream.web_stream_data.measurement_id,
-            'firebase_app_id': data_stream.web_stream_data.firebase_app_id,
-            'default_uri': data_stream.web_stream_data.default_uri
-          }
-          time.sleep(REQUEST_DELAY)
+          # Web stream measurement protocol secrets
           for mps in admin_api.list_measurement_protocol_secrets(
               parent=data_stream.name):
-            mps_dict = {
-                'name': mps.name,
-                'display_name': mps.display_name,
-                'secret_value': mps.secret_value,
-                'stream_name': data_stream.name,
-                'type': DataStream.DataStreamType(data_stream.type_).name,
-                'property': property_summary['property'],
-                'property_display_name': property_summary['display_name']
-            }
+            mps_dict = format_resource_dict(
+              data_stream, property_path, property_display_name)
+            mps_dict['type'] = DataStream.DataStreamType(data_stream.type_).name
+            mps_dict['stream_name'] = data_stream.name
             entities['ga4_measurement_protocol_secrets'].append(mps_dict)
+          time.sleep(REQUEST_DELAY)
         if data_stream.android_app_stream_data != None:
-          data_stream_dict['android_app_stream_data'] = {
-            'firebase_app_id': (data_stream
-                               .android_app_stream_data.firebase_app_id),
-            'package_name': data_stream.android_app_stream_data.package_name
-          }
-          time.sleep(REQUEST_DELAY)
+          # Android app data stream measurement protocol secrets
           for mps in admin_api.list_measurement_protocol_secrets(
               parent=data_stream.name):
-            mps_dict = {
-                'name': mps.name,
-                'display_name': mps.display_name,
-                'secret_value': mps.secret_value,
-                'stream_name': data_stream.name,
-                'type': DataStream.DataStreamType(data_stream.type_).name,
-                'property': property_summary['property'],
-                'property_display_name': property_summary['display_name']
-            }
+            mps_dict = format_resource_dict(
+              data_stream, property_path, property_display_name)
+            mps_dict['type'] = DataStream.DataStreamType(data_stream.type_).name
+            mps_dict['stream_name'] = data_stream.name
             entities['ga4_measurement_protocol_secrets'].append(mps_dict)
-        if data_stream.ios_app_stream_data != None:
-          data_stream_dict['ios_app_stream_data'] = {
-            'firebase_app_id': data_stream.ios_app_stream_data.firebase_app_id,
-            'bundle_id': data_stream.ios_app_stream_data.bundle_id
-          }
           time.sleep(REQUEST_DELAY)
+        if data_stream.ios_app_stream_data != None:
+          # iOS app data strem measurement protocol secrets
           for mps in admin_api.list_measurement_protocol_secrets(
               parent=data_stream.name):
-            mps_dict = {
-                'name': mps.name,
-                'display_name': mps.display_name,
-                'secret_value': mps.secret_value,
-                'stream_name': data_stream.name,
-                'type': DataStream.DataStreamType(data_stream.type_).name,
-                'property': property_summary['property'],
-                'property_display_name': property_summary['display_name']
-            }
+            mps_dict = format_resource_dict(
+              data_stream, property_path, property_display_name)
+            mps_dict['type'] = DataStream.DataStreamType(data_stream.type_).name
+            mps_dict['stream_name'] = data_stream.name
             entities['ga4_measurement_protocol_secrets'].append(mps_dict)
         entities['ga4_data_streams'].append(data_stream_dict)
       time.sleep(REQUEST_DELAY)
+      # Events
       for event in admin_api.list_conversion_events(
-          parent=property_summary['property']):
-        event_dict = {
-            'name': event.name,
-            'event_name': event.event_name,
-            'create_time': event.create_time,
-            'deletable': event.deletable,
-            'custom': event.custom,
-            'property': property_summary['property'],
-            'property_display_name': property_summary['display_name']
-        }
-        entities['ga4_conversion_events'].append(event_dict)
+          parent=property_path):
+        formatted_dict = format_resource_dict(
+          event, property_path, property_display_name)
+        entities['ga4_conversion_events'].append(formatted_dict)
       time.sleep(REQUEST_DELAY)
+      # Custom dimensions
       for cd in admin_api.list_custom_dimensions(
-          parent=property_summary['property']):
-        cd_dict = {
-            'name': cd.name,
-            'parameter_name': cd.parameter_name,
-            'display_name': cd.display_name,
-            'description': cd.description,
-            'scope': cd.scope,
-            'disallow_ads_personalization': cd.disallow_ads_personalization,
-            'property': property_summary['property'],
-            'property_display_name': property_summary['display_name']
-        }
-        entities['ga4_custom_dimensions'].append(cd_dict)
+          parent=property_path):
+        formatted_dict = format_resource_dict(
+          cd, property_path, property_display_name)
+        entities['ga4_custom_dimensions'].append(formatted_dict)
       time.sleep(REQUEST_DELAY)
+      # Custom metrics
       for cm in admin_api.list_custom_metrics(
-          parent=property_summary['property']):
-        cm_dict = {
-            'name': cm.name,
-            'parameter_name': cm.parameter_name,
-            'display_name': cm.display_name,
-            'description': cm.description,
-            'scope': cm.scope,
-            'measurement_unit': cm.measurement_unit,
-            'property': property_summary['property'],
-            'property_display_name': property_summary['display_name']
-        }
-        entities['ga4_custom_metrics'].append(cm_dict)
+          parent=property_path):
+        formatted_dict = format_resource_dict(
+          cm, property_path, property_display_name)
+        entities['ga4_custom_metrics'].append(formatted_dict)
       time.sleep(REQUEST_DELAY)
+      # Google ads links
       for link in admin_api.list_google_ads_links(
-          parent=property_summary['property']):
-        link_dict = {
-            'name': link.name,
-            'customer_id': link.customer_id,
-            'can_manage_clients': link.can_manage_clients,
-            'ads_personalization_enabled': link.ads_personalization_enabled,
-            'create_time': link.create_time,
-            'update_time': link.update_time,
-            'creator_email_address': link.creator_email_address,
-            'property': property_summary['property'],
-            'property_display_name': property_summary['display_name']
-        }
-        entities['ga4_google_ads_links'].append(link_dict)
+          parent=property_path):
+        formatted_dict = format_resource_dict(
+          link, property_path, property_display_name)
+        entities['ga4_google_ads_links'].append(formatted_dict)
       time.sleep(REQUEST_DELAY)
+      # Firebase links
       for link in admin_api.list_firebase_links(
-          parent=property_summary['property']):
-        link_dict = {
-            'name': link.name,
-            'project': link.project,
-            'create_time': link.create_time,
-            'property': property_summary['property'],
-            'property_display_name': property_summary['display_name']
-        }
-        entities['ga4_firebase_links'].append(link_dict)
+          parent=property_path):
+        formatted_dict = format_resource_dict(
+          link, property_path, property_display_name)
+        entities['ga4_firebase_links'].append(formatted_dict)
       time.sleep(REQUEST_DELAY)
+      # DV360 advertiser links
       for link in admin_api.list_display_video360_advertiser_links(
-          parent=property_summary['property']):
-        link_dict = {
-            'name': link.name,
-            'advertiser_id': link.advertiser_id,
-            'advertiser_display_name': link.advertiser_display_name,
-            'ads_personalization_enabled': link.ads_personalization_enabled,
-            'campaign_data_sharing_enabled': link.campaign_data_sharing_enabled,
-            'cost_data_sharing_enabled': link.cost_data_sharing_enabled,
-            'property': property_summary['property'],
-            'property_display_name': property_summary['display_name']
-        }
-        entities['ga4_dv360_links'].append(link_dict)
+          parent=property_path):
+        formatted_dict = format_resource_dict(
+          link, property_path, property_display_name)
+        entities['ga4_dv360_links'].append(formatted_dict)
       time.sleep(REQUEST_DELAY)
+      # DV360 advertiser link proposals
       for proposal in (
           admin_api.list_display_video360_advertiser_link_proposals(
-              parent=property_summary['property'])):
-        lpip_enum = (proposal.link_proposal_status_details
-                                  .link_proposal_initiating_product)
-        lps_enum = (proposal.link_proposal_status_details
-                                   .link_proposal_state)
-        proposals_dict = {
-            'name':
-                proposal.name,
-            'advertiser_id':
-                proposal.adveriser_id,
-            'link_proposal_status_details': {
-                'link_proposal_initiating_product':
-                    LinkProposalInitiatingProduct(lpip_enum).name,
-                'requestor_email':
-                    proposal.link_proposal_status_details.requestor_email,
-                'link_proposal_state': LinkProposalState(lps_enum).name
-            },
-            'advertiser_display_name':
-                proposal.advertiser_display_name,
-            'validation_email':
-                proposal.validation_email,
-            'ads_personalization_enabled':
-                proposal.ads_personalization_enabled,
-            'campaign_data_sharing_enabled':
-                proposal.campaign_data_sharing_enabled,
-            'cost_data_sharing_enabled':
-                proposal.cost_data_sharing_enabled,
-            'property': property_summary['property'],
-            'property_display_name': property_summary['display_name']
-        }
-        entities['ga4_dv360_link_proposals'].append(proposal_dict)
+              parent=property_path)):
+        formatted_dict = format_resource_dict(
+          proposal, property_path, property_display_name)
+        entities['ga4_dv360_link_proposals'].append(formatted_dict)
+      time.sleep(REQUEST_DELAY)
+      # Audiences 
+      for audience in (admin_api.list_audiences(parent=property_path)):
+        formatted_dict = format_resource_dict(
+          audience, property_path, property_display_name)
+        if 'filter_clauses' in formatted_dict:
+          string_clauses = json.dumps(formatted_dict['filter_clauses'])
+          formatted_dict['filter_clauses'] = string_clauses
+        entities['ga4_audiences'].append(formatted_dict)
+      time.sleep(REQUEST_DELAY)
   return entities
-
-
-def create_gcs_json_file(data, file_name):
-  """Creates a Cloud Storage JSON file containing the data for a setting type.
-
-  Args:
-    data: The list to be written to the Cloud Storage JSON file.
-    file_name: The name for the Cloud Storage JSON file.
-  """
-  data_blob = bucket.blob(file_name)
-  with open(f'/tmp/{file_name}', 'w') as w:
-    for item in data:
-      json.dump(item, w, default=str)
-      w.write('\n')
-    w.close()
-    with open(f'/tmp/{file_name}', 'r') as r:
-      data_blob.upload_from_file(r)
-      r.close()
-
-
-def save_to_bigquery(table_id):
-  """Saves data to bigquery.
-
-  Args:
-    table_id: The table id and Cloud Storage file name.
-  """
-  job_config = bigquery.LoadJobConfig()
-  job_config.autodetect = True
-  job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
-  dataset_ref = bigquery_client.dataset(DATASET_ID)
-  uri = f'gs://{BUCKET_NAME}/{table_id}'
-  table = dataset_ref.table(table_id)
-  load_job = bigquery_client.load_table_from_uri(
-      uri, table, job_config=job_config)
-  load_job.result()  # Waits for table load to complete.
+  
+def format_resource_dict(data, property_path, property_display_name):
+  data_dict = humps.decamelize(MessageToDict(data._pb))
+  data_dict['property'] = property_path
+  data_dict['property_display_name'] = property_display_name
+  return data_dict

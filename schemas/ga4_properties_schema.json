@@ -1,108 +1,140 @@
 [
   {
-    "fields": [
+    "fields":[
       {
-        "mode": "NULLABLE",
-        "name": "state",
-        "type": "STRING"
+        "mode":"NULLABLE",
+        "name":"state",
+        "type":"STRING"
       },
       {
-        "mode": "NULLABLE",
-        "name": "consent",
-        "type": "STRING"
+        "mode":"NULLABLE",
+        "name":"consent",
+        "type":"STRING"
       },
       {
-        "mode": "NULLABLE",
-        "name": "name",
-        "type": "STRING"
+        "mode":"NULLABLE",
+        "name":"name",
+        "type":"STRING"
       }
     ],
-    "mode": "NULLABLE",
-    "name": "google_signals_settings",
-    "type": "RECORD"
+    "mode":"NULLABLE",
+    "name":"google_signals_settings",
+    "type":"RECORD"
   },
   {
-    "fields": [
+    "fields":[
       {
-        "mode": "NULLABLE",
-        "name": "reset_user_data_on_new_activity",
-        "type": "BOOLEAN"
+        "mode":"NULLABLE",
+        "name":"reset_user_data_on_new_activity",
+        "type":"BOOLEAN"
       },
       {
-        "mode": "NULLABLE",
-        "name": "event_data_retention",
-        "type": "STRING"
+        "mode":"NULLABLE",
+        "name":"event_data_retention",
+        "type":"STRING"
       },
       {
-        "mode": "NULLABLE",
-        "name": "name",
-        "type": "STRING"
+        "mode":"NULLABLE",
+        "name":"name",
+        "type":"STRING"
       }
     ],
-    "mode": "NULLABLE",
-    "name": "data_sharing_settings",
-    "type": "RECORD"
+    "mode":"NULLABLE",
+    "name":"data_sharing_settings",
+    "type":"RECORD"
   },
   {
-    "mode": "NULLABLE",
-    "name": "name",
-    "type": "STRING"
+    "fields":[
+      {
+        "mode":"NULLABLE",
+        "name":"name",
+        "type":"STRING"
+      },
+      {
+        "mode":"NULLABLE",
+        "name":"acquisition_conversion_event_lookback_window",
+        "type":"STRING"
+      },
+      {
+        "mode":"NULLABLE",
+        "name":"other_conversion_event_lookback_window",
+        "type":"STRING"
+      },
+      {
+        "mode":"NULLABLE",
+        "name":"reporting_attribution_model",
+        "type":"STRING"
+      }
+    ],
+    "mode":"NULLABLE",
+    "name":"attribution_settings",
+    "type":"RECORD"
   },
   {
-    "mode": "NULLABLE",
-    "name": "service_level",
-    "type": "STRING"
+    "mode":"NULLABLE",
+    "name":"name",
+    "type":"STRING"
   },
   {
-    "mode": "NULLABLE",
-    "name": "parent",
-    "type": "STRING"
+    "mode":"NULLABLE",
+    "name":"service_level",
+    "type":"STRING"
   },
   {
-    "mode": "NULLABLE",
-    "name": "currency_code",
-    "type": "STRING"
+    "mode":"NULLABLE",
+    "name":"parent",
+    "type":"STRING"
   },
   {
-    "mode": "NULLABLE",
-    "name": "time_zone",
-    "type": "STRING"
+    "mode":"NULLABLE",
+    "name":"currency_code",
+    "type":"STRING"
   },
   {
-    "mode": "NULLABLE",
-    "name": "account",
-    "type": "STRING"
+    "mode":"NULLABLE",
+    "name":"time_zone",
+    "type":"STRING"
   },
   {
-    "mode": "NULLABLE",
-    "name": "expire_time",
-    "type": "STRING"
+    "mode":"NULLABLE",
+    "name":"account",
+    "type":"STRING"
   },
   {
-    "description": "bq-datetime",
-    "mode": "NULLABLE",
-    "name": "update_time",
-    "type": "TIMESTAMP"
+    "mode":"NULLABLE",
+    "name":"expire_time",
+    "type":"STRING"
   },
   {
-    "mode": "NULLABLE",
-    "name": "display_name",
-    "type": "STRING"
+    "description":"bq-datetime",
+    "mode":"NULLABLE",
+    "name":"update_time",
+    "type":"TIMESTAMP"
   },
   {
-    "mode": "NULLABLE",
-    "name": "industry_category",
-    "type": "STRING"
+    "mode":"NULLABLE",
+    "name":"display_name",
+    "type":"STRING"
   },
   {
-    "mode": "NULLABLE",
-    "name": "delete_time",
-    "type": "STRING"
+    "mode":"NULLABLE",
+    "name":"industry_category",
+    "type":"STRING"
   },
   {
-    "description": "bq-datetime",
-    "mode": "NULLABLE",
-    "name": "create_time",
-    "type": "TIMESTAMP"
+    "mode":"NULLABLE",
+    "name":"delete_time",
+    "type":"STRING"
+  },
+  {
+    "description":"bq-datetime",
+    "mode":"NULLABLE",
+    "name":"create_time",
+    "type":"TIMESTAMP"
+  },
+  {
+    "mode":"NULLABLE",
+    "name":"property_type",
+    "type":"STRING"
   }
 ]

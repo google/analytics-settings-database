@@ -38,7 +38,9 @@ SELECT
   (CASE WHEN COUNT(DISTINCT custom_metrics.parameter_name) > 0 THEN TRUE ELSE FALSE END) AS custom_metrics_created,
   COUNT(DISTINCT custom_metrics.parameter_name) AS number_of_custom_metrics,
   (CASE WHEN COUNT(DISTINCT measurement_protocol_secrets.secret_value) > 0 THEN TRUE ELSE FALSE END) AS measurement_protocol_secret_created,
-  COUNT(DISTINCT measurement_protocol_secrets.secret_value) AS number_of_measurement_protocol_secrets
+  COUNT(DISTINCT measurement_protocol_secrets.secret_value) AS number_of_measurement_protocol_secrets,
+  (CASE WHEN SUM(audiences.is_custom) > 0 THEN TRUE ELSE FALSE END) AS custom_audiences_created,
+  SUM(audiences.is_custom) AS number_of_custom_audiences
 FROM
   analytics_settings_database.ga4_account_summaries AS summaries,
   UNNEST(property_summaries) AS property_summaries
@@ -140,6 +142,20 @@ LEFT JOIN (
     DATE(_PARTITIONTIME) = CURRENT_DATE()) AS measurement_protocol_secrets
 ON
   property_summaries.property = measurement_protocol_secrets.property_id
+LEFT JOIN (
+  SELECT
+    property AS property_id,
+    name,
+    CASE
+      WHEN REGEXP_CONTAINS('Purchasers|All Users', display_name) THEN 0
+    ELSE
+    1
+  END
+  FROM
+    analytics_settings_database.ga4_audiences
+  WHERE
+    DATE(_PARTITIONTIME) = CURRENT_DATE()) AS audiences ON
+    property_summaries.property = ga4_audiences.property_id
 WHERE
   DATE(_PARTITIONTIME) = CURRENT_DATE()
 GROUP BY

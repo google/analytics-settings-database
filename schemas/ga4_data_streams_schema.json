@@ -42,17 +42,17 @@
     "type": "RECORD",
     "fields": [{
       "mode": "NULLABLE",
-      "name": "default_uri",
-      "type": "STRING"
-    },
-    {
-      "mode": "NULLABLE",
       "name": "measurement_id",
       "type": "STRING"
     },
     {
       "mode": "NULLABLE",
       "name": "firebase_app_id",
+      "type": "STRING"
+    },
+    {
+      "mode": "NULLABLE",
+      "name": "default_uri",
       "type": "STRING"
     }]
   },
@@ -87,6 +87,3 @@
     }]
   }
 ]
-
-
-

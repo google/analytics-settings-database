@@ -1,0 +1,69 @@
+[
+  {
+    "type": "STRING",
+    "name": "name",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "display_name",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "description",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "INT64",
+    "name": "membership_duration_days",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "BOOL",
+    "name": "ads_personalization_enabled",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "property_display_name",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "property_name",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "property",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "RECORD",
+    "name": "event_trigger",
+    "mode": "NULLABLE",
+    "fields": [
+      {
+        "type": "STRING",
+        "name": "event_name",
+        "mode": "NULLABLE"
+      },
+      {
+        "type": "STRING",
+        "name": "log_condition",
+        "mode": "NULLABLE"
+      }
+    ]
+  },
+  {
+    "type": "STRING",
+    "name": "filter_clauses",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "exclusion_duration_mode",
+    "mode": "NULLABLE"
+  }
+]

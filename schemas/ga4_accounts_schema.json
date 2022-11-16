@@ -15,13 +15,11 @@
     "type": "STRING"
   },
   {
-    "description": "bq-datetime",
     "mode": "NULLABLE",
     "name": "update_time",
     "type": "TIMESTAMP"
   },
   {
-    "description": "bq-datetime",
     "mode": "NULLABLE",
     "name": "create_time",
     "type": "TIMESTAMP"

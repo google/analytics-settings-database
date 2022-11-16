@@ -17,7 +17,7 @@
   {
     "mode": "NULLABLE",
     "name": "scope",
-    "type": "INTEGER"
+    "type": "STRING"
   },
   {
     "mode": "NULLABLE",

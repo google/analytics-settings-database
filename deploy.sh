@@ -1,7 +1,7 @@
 #!/bin/bash
 ###########################################################################
 #
-#  Copyright 2021 Google Inc.
+#  Copyright 2022 Google Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ gcloud services enable \
 cloudbuild.googleapis.com \
 cloudfunctions.googleapis.com \
 storage-component.googleapis.com \
-storage-api.googleapis.com \
 bigquery.googleapis.com \
 cloudscheduler.googleapis.com \
 appengine.googleapis.com \
@@ -37,26 +36,11 @@ analytics.googleapis.com \
 analyticsadmin.googleapis.com \
 --async
 
+gcloud app create
+
 exit_setup () {
   exit "Exiting Google Analytics Settings Database setup. Setup failed."
 }
-
-cloud_bucket_setup () {
-  read -p "Please enter your Cloud Bucket name: " cloud_bucket_name
-  echo "~~~~~~~~ Creating Cloud Bucket ~~~~~~~~~~"
-  if gsutil mb gs://$cloud_bucket_name; then
-    echo "Bucket created."
-  else
-    read -p "Bucket creation failed. Try again? y/n: " exit_response
-    if [ $exit_response = "n" ]; then
-      exit_setup
-    else
-      cloud_bucket_setup 
-    fi
-  fi
-}
-
-cloud_bucket_setup
 
 create_service_account () {
   gcloud iam service-accounts create $service_account_name \
@@ -112,13 +96,13 @@ service_account_setup
 create_cloud_function () {
   gcloud functions deploy $function_name \
   	--project=$project_id \
-  	--runtime=python39 \
+  	--runtime=python310 \
   	--service-account=$service_account_email \
   	--memory=1GB \
-  	--timeout=540s \
+  	--timeout=3600s \
   	--trigger-http \
   	--entry-point=ga_settings_download \
-  	--set-env-vars=BUCKET_NAME=$cloud_bucket_name
+		--gen2
 }
 
 cloud_function_setup () {
@@ -209,6 +193,9 @@ bq mk -t --time_partitioning_type=DAY \
 bq mk -t --time_partitioning_type=DAY \
 	--schema=./ga4_dv360_links_schema.json \
 	$project_id:analytics_settings_database.ga4_dv360_links
+bq mk -t --time_partitioning_type=DAY \
+	--schema=./ga4_audiences_schema.json \
+	$project_id:analytics_settings_database.ga4_audiences
 cd ..
 echo "BigQuery tables created."
 
