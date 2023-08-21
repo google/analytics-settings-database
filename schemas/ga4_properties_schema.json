@@ -57,6 +57,11 @@
       },
       {
         "mode":"NULLABLE",
+        "name":"ads_web_conversion_data_export_scope",
+        "type":"STRING"
+      },
+      {
+        "mode":"NULLABLE",
         "name":"other_conversion_event_lookback_window",
         "type":"STRING"
       },
