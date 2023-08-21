@@ -319,106 +319,115 @@ def list_ga4_entities(admin_api):
       # Append property to list of properties
       entities['ga4_properties'].append(property_dict)
     time.sleep(REQUEST_DELAY)
-    # Property level settings
-    for property_summary in account_summary['property_summaries']:
-      property_path = property_summary['property']
-      property_display_name = property_summary['display_name']
-      # Data streams
-      for data_stream in admin_api.list_data_streams(
-          parent=property_path):
-        data_stream_dict = format_resource_dict(
-          data_stream, property_path, property_display_name)
+    try:
+      # Property level settings
+      for property_summary in account_summary['property_summaries']:
+        if property_summary == None:
+          #If no property, skip row
+          continue
+        property_path = property_summary['property']
+        property_display_name = property_summary['display_name']
+        # Data streams
+        try:
+          for data_stream in admin_api.list_data_streams(
+              parent=property_path):
+            data_stream_dict = format_resource_dict(
+              data_stream, property_path, property_display_name)
+            time.sleep(REQUEST_DELAY)
+            if data_stream.web_stream_data != None:
+              # Web stream measurement protocol secrets
+              for mps in admin_api.list_measurement_protocol_secrets(
+                  parent=data_stream.name):
+                mps_dict = format_resource_dict(
+                  data_stream, property_path, property_display_name)
+                mps_dict['type'] = DataStream.DataStreamType(data_stream.type_).name
+                mps_dict['stream_name'] = data_stream.name
+                entities['ga4_measurement_protocol_secrets'].append(mps_dict)
+              time.sleep(REQUEST_DELAY)
+            if data_stream.android_app_stream_data != None:
+              # Android app data stream measurement protocol secrets
+              for mps in admin_api.list_measurement_protocol_secrets(
+                  parent=data_stream.name):
+                mps_dict = format_resource_dict(
+                  data_stream, property_path, property_display_name)
+                mps_dict['type'] = DataStream.DataStreamType(data_stream.type_).name
+                mps_dict['stream_name'] = data_stream.name
+                entities['ga4_measurement_protocol_secrets'].append(mps_dict)
+              time.sleep(REQUEST_DELAY)
+            if data_stream.ios_app_stream_data != None:
+              # iOS app data strem measurement protocol secrets
+              for mps in admin_api.list_measurement_protocol_secrets(
+                  parent=data_stream.name):
+                mps_dict = format_resource_dict(
+                  data_stream, property_path, property_display_name)
+                mps_dict['type'] = DataStream.DataStreamType(data_stream.type_).name
+                mps_dict['stream_name'] = data_stream.name
+                entities['ga4_measurement_protocol_secrets'].append(mps_dict)
+            entities['ga4_data_streams'].append(data_stream_dict)
+        except:
+          continue
         time.sleep(REQUEST_DELAY)
-        if data_stream.web_stream_data != None:
-          # Web stream measurement protocol secrets
-          for mps in admin_api.list_measurement_protocol_secrets(
-              parent=data_stream.name):
-            mps_dict = format_resource_dict(
-              data_stream, property_path, property_display_name)
-            mps_dict['type'] = DataStream.DataStreamType(data_stream.type_).name
-            mps_dict['stream_name'] = data_stream.name
-            entities['ga4_measurement_protocol_secrets'].append(mps_dict)
-          time.sleep(REQUEST_DELAY)
-        if data_stream.android_app_stream_data != None:
-          # Android app data stream measurement protocol secrets
-          for mps in admin_api.list_measurement_protocol_secrets(
-              parent=data_stream.name):
-            mps_dict = format_resource_dict(
-              data_stream, property_path, property_display_name)
-            mps_dict['type'] = DataStream.DataStreamType(data_stream.type_).name
-            mps_dict['stream_name'] = data_stream.name
-            entities['ga4_measurement_protocol_secrets'].append(mps_dict)
-          time.sleep(REQUEST_DELAY)
-        if data_stream.ios_app_stream_data != None:
-          # iOS app data strem measurement protocol secrets
-          for mps in admin_api.list_measurement_protocol_secrets(
-              parent=data_stream.name):
-            mps_dict = format_resource_dict(
-              data_stream, property_path, property_display_name)
-            mps_dict['type'] = DataStream.DataStreamType(data_stream.type_).name
-            mps_dict['stream_name'] = data_stream.name
-            entities['ga4_measurement_protocol_secrets'].append(mps_dict)
-        entities['ga4_data_streams'].append(data_stream_dict)
-      time.sleep(REQUEST_DELAY)
-      # Events
-      for event in admin_api.list_conversion_events(
-          parent=property_path):
-        formatted_dict = format_resource_dict(
-          event, property_path, property_display_name)
-        entities['ga4_conversion_events'].append(formatted_dict)
-      time.sleep(REQUEST_DELAY)
-      # Custom dimensions
-      for cd in admin_api.list_custom_dimensions(
-          parent=property_path):
-        formatted_dict = format_resource_dict(
-          cd, property_path, property_display_name)
-        entities['ga4_custom_dimensions'].append(formatted_dict)
-      time.sleep(REQUEST_DELAY)
-      # Custom metrics
-      for cm in admin_api.list_custom_metrics(
-          parent=property_path):
-        formatted_dict = format_resource_dict(
-          cm, property_path, property_display_name)
-        entities['ga4_custom_metrics'].append(formatted_dict)
-      time.sleep(REQUEST_DELAY)
-      # Google ads links
-      for link in admin_api.list_google_ads_links(
-          parent=property_path):
-        formatted_dict = format_resource_dict(
-          link, property_path, property_display_name)
-        entities['ga4_google_ads_links'].append(formatted_dict)
-      time.sleep(REQUEST_DELAY)
-      # Firebase links
-      for link in admin_api.list_firebase_links(
-          parent=property_path):
-        formatted_dict = format_resource_dict(
-          link, property_path, property_display_name)
-        entities['ga4_firebase_links'].append(formatted_dict)
-      time.sleep(REQUEST_DELAY)
-      # DV360 advertiser links
-      for link in admin_api.list_display_video360_advertiser_links(
-          parent=property_path):
-        formatted_dict = format_resource_dict(
-          link, property_path, property_display_name)
-        entities['ga4_dv360_links'].append(formatted_dict)
-      time.sleep(REQUEST_DELAY)
-      # DV360 advertiser link proposals
-      for proposal in (
-          admin_api.list_display_video360_advertiser_link_proposals(
-              parent=property_path)):
-        formatted_dict = format_resource_dict(
-          proposal, property_path, property_display_name)
-        entities['ga4_dv360_link_proposals'].append(formatted_dict)
-      time.sleep(REQUEST_DELAY)
-      # Audiences 
-      for audience in (admin_api.list_audiences(parent=property_path)):
-        formatted_dict = format_resource_dict(
-          audience, property_path, property_display_name)
-        if 'filter_clauses' in formatted_dict:
-          string_clauses = json.dumps(formatted_dict['filter_clauses'])
-          formatted_dict['filter_clauses'] = string_clauses
-        entities['ga4_audiences'].append(formatted_dict)
-      time.sleep(REQUEST_DELAY)
+        # Events
+        for event in admin_api.list_conversion_events(
+            parent=property_path):
+          formatted_dict = format_resource_dict(
+            event, property_path, property_display_name)
+          entities['ga4_conversion_events'].append(formatted_dict)
+        time.sleep(REQUEST_DELAY)
+        # Custom dimensions
+        for cd in admin_api.list_custom_dimensions(
+            parent=property_path):
+          formatted_dict = format_resource_dict(
+            cd, property_path, property_display_name)
+          entities['ga4_custom_dimensions'].append(formatted_dict)
+        time.sleep(REQUEST_DELAY)
+        # Custom metrics
+        for cm in admin_api.list_custom_metrics(
+            parent=property_path):
+          formatted_dict = format_resource_dict(
+            cm, property_path, property_display_name)
+          entities['ga4_custom_metrics'].append(formatted_dict)
+        time.sleep(REQUEST_DELAY)
+        # Google ads links
+        for link in admin_api.list_google_ads_links(
+            parent=property_path):
+          formatted_dict = format_resource_dict(
+            link, property_path, property_display_name)
+          entities['ga4_google_ads_links'].append(formatted_dict)
+        time.sleep(REQUEST_DELAY)
+        # Firebase links
+        for link in admin_api.list_firebase_links(
+            parent=property_path):
+          formatted_dict = format_resource_dict(
+            link, property_path, property_display_name)
+          entities['ga4_firebase_links'].append(formatted_dict)
+        time.sleep(REQUEST_DELAY)
+        # DV360 advertiser links
+        for link in admin_api.list_display_video360_advertiser_links(
+            parent=property_path):
+          formatted_dict = format_resource_dict(
+            link, property_path, property_display_name)
+          entities['ga4_dv360_links'].append(formatted_dict)
+        time.sleep(REQUEST_DELAY)
+        # DV360 advertiser link proposals
+        for proposal in (
+            admin_api.list_display_video360_advertiser_link_proposals(
+                parent=property_path)):
+          formatted_dict = format_resource_dict(
+            proposal, property_path, property_display_name)
+          entities['ga4_dv360_link_proposals'].append(formatted_dict)
+        time.sleep(REQUEST_DELAY)
+        # Audiences 
+        for audience in (admin_api.list_audiences(parent=property_path)):
+          formatted_dict = format_resource_dict(
+            audience, property_path, property_display_name)
+          if 'filter_clauses' in formatted_dict:
+            string_clauses = json.dumps(formatted_dict['filter_clauses'])
+            formatted_dict['filter_clauses'] = string_clauses
+          entities['ga4_audiences'].append(formatted_dict)
+        time.sleep(REQUEST_DELAY)
+    except:
+      continue
   return entities
   
 def format_resource_dict(data, property_path, property_display_name):
