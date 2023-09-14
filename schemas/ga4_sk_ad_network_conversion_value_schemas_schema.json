@@ -1,0 +1,225 @@
+[
+  {
+    "name": "name",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "property_display_name",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "property",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "stream_name",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "post_back_window_one",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
+      {
+        "name": "conversion_values",
+        "type": "RECORD",
+        "mode": "NULLABLE",
+        "fields": [
+          {
+            "name": "display_name",
+            "type": "STRING",
+            "mode": "NULLABLE"
+          },
+          {
+            "name": "course_value",
+            "type": "STRING",
+            "mode": "NULLABLE"
+          },
+          {
+            "name": "event_mappings",
+            "type": "RECORD",
+            "mode": "NULLABLE",
+            "fields": [
+              {
+                "name": "event_name",
+                "type": "STRING",
+                "mode": "NULLABLE"
+              },
+              {
+                "name": "min_event_count",
+                "type": "STRING",
+                "mode": "NULLABLE"
+              },
+              {
+                "name": "min_event_value",
+                "type": "INT64",
+                "mode": "NULLABLE"
+              },
+              {
+                "name": "max_event_value",
+                "type": "INT64",
+                "mode": "NULLABLE"
+              }
+            ]
+          },
+          {
+            "name": "lock_enabled",
+            "type": "BOOLEAN",
+            "mode": "NULLABLE"
+          },
+          {
+            "name": "fine_value",
+            "type": "INT64",
+            "mode": "NULLABLE"
+          }
+        ]
+      },
+      {
+        "name": "postback_window_settings_enabled",
+        "type": "BOOLEAN",
+        "mode": "NULLABLE"
+      }
+    ]
+  },
+  {
+    "name": "post_back_window_two",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
+      {
+        "name": "conversion_values",
+        "type": "RECORD",
+        "mode": "NULLABLE",
+        "fields": [
+          {
+            "name": "display_name",
+            "type": "STRING",
+            "mode": "NULLABLE"
+          },
+          {
+            "name": "course_value",
+            "type": "STRING",
+            "mode": "NULLABLE"
+          },
+          {
+            "name": "event_mappings",
+            "type": "RECORD",
+            "mode": "NULLABLE",
+            "fields": [
+              {
+                "name": "event_name",
+                "type": "STRING",
+                "mode": "NULLABLE"
+              },
+              {
+                "name": "min_event_count",
+                "type": "STRING",
+                "mode": "NULLABLE"
+              },
+              {
+                "name": "min_event_value",
+                "type": "INT64",
+                "mode": "NULLABLE"
+              },
+              {
+                "name": "max_event_value",
+                "type": "INT64",
+                "mode": "NULLABLE"
+              }
+            ]
+          },
+          {
+            "name": "lock_enabled",
+            "type": "BOOLEAN",
+            "mode": "NULLABLE"
+          },
+          {
+            "name": "fine_value",
+            "type": "INT64",
+            "mode": "NULLABLE"
+          }
+        ]
+      },
+      {
+        "name": "postback_window_settings_enabled",
+        "type": "BOOLEAN",
+        "mode": "NULLABLE"
+      }
+    ]
+  },
+  {
+    "name": "post_back_window_three",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
+      {
+        "name": "conversion_values",
+        "type": "RECORD",
+        "mode": "NULLABLE",
+        "fields": [
+          {
+            "name": "display_name",
+            "type": "STRING",
+            "mode": "NULLABLE"
+          },
+          {
+            "name": "course_value",
+            "type": "STRING",
+            "mode": "NULLABLE"
+          },
+          {
+            "name": "event_mappings",
+            "type": "RECORD",
+            "mode": "NULLABLE",
+            "fields": [
+              {
+                "name": "event_name",
+                "type": "STRING",
+                "mode": "NULLABLE"
+              },
+              {
+                "name": "min_event_count",
+                "type": "STRING",
+                "mode": "NULLABLE"
+              },
+              {
+                "name": "min_event_value",
+                "type": "INT64",
+                "mode": "NULLABLE"
+              },
+              {
+                "name": "max_event_value",
+                "type": "INT64",
+                "mode": "NULLABLE"
+              }
+            ]
+          },
+          {
+            "name": "lock_enabled",
+            "type": "BOOLEAN",
+            "mode": "NULLABLE"
+          },
+          {
+            "name": "fine_value",
+            "type": "INT64",
+            "mode": "NULLABLE"
+          }
+        ]
+      },
+      {
+        "name": "postback_window_settings_enabled",
+        "type": "BOOLEAN",
+        "mode": "NULLABLE"
+      }
+    ]
+  },
+  {
+    "type": "BOOLEAN",
+    "name": "apply_conversion_values",
+    "mode": "NULLABLE"
+  }
+]

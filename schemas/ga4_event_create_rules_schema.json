@@ -1,0 +1,81 @@
+[
+  {
+    "name": "name",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "property_display_name",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "property",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "type",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "stream_name",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "destination_event",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "event_conditions",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
+      {
+        "name": "field",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "comparison_type",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "value",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "negated",
+        "type": "BOOLEAN",
+        "mode": "NULLABLE"
+      }
+    ]
+  },
+  {
+    "name": "source_copy_parameters",
+    "type": "BOOLEAN",
+    "mode": "NULLABLE"
+  },
+  {
+    "name": "parameter_mutations",
+    "type": "RECORD",
+    "mode": "NULLABLE",
+    "fields": [
+      {
+        "name": "parameter",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      },
+      {
+        "name": "parameter_value",
+        "type": "STRING",
+        "mode": "NULLABLE"
+      }
+    ]
+  }
+]

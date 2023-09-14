@@ -1,0 +1,22 @@
+[
+  {
+    "name": "name",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "property_display_name",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "property",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "ad_client_code",
+    "mode": "NULLABLE"
+  }
+]
