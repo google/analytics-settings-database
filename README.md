@@ -23,7 +23,7 @@ This repository contains code for a Google Cloud Function that loads Google Anal
 
     ```
 
-    rm -rf analytics-settings-database && git clone https://github.com/google/analytics-settings-database.git && cd analytics-settings-database && bash deploy\_function.sh
+    rm -rf analytics-settings-database && git clone https://github.com/google/analytics-settings-database.git && cd analytics-settings-database && bash deploy_function.sh
 
     ```
     - Follow the steps outlined in the deploy script to create the HTTP function.
@@ -35,7 +35,7 @@ This repository contains code for a Google Cloud Function that loads Google Anal
 6. If it is not already open, open cloud shell again and enter the following to create your BigQuery dataset and tables. This will automatically create a data set named "analytics\_settings\_database" and populate it with the required tables.
     ```
 
-    cd analytics-settings-database && bash deploy\_bq\_tables.sh
+    cd analytics-settings-database && bash deploy_bq_tables.sh
 
     ```
     - Once the script has run, your new tables should be visible in BigQuery.
