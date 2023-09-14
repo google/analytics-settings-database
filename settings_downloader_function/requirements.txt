@@ -2,7 +2,7 @@ google-api-python-client
 oauth2client
 google-cloud-bigquery
 google-auth
-google-analytics-admin
+git+https://github.com/googleapis/python-analytics-admin@main
 google-auth-oauthlib
 pyhumps
 protobuf

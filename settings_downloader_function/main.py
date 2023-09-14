@@ -1,4 +1,4 @@
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,23 +20,18 @@ import humps
 import google.auth
 from google.analytics.admin import AnalyticsAdminServiceClient
 from google.analytics.admin_v1alpha.types import ListPropertiesRequest
+from google.analytics.admin_v1alpha.types import DataStream
 from google.protobuf.json_format import MessageToDict
 from google.cloud import bigquery
-from googleapiclient.discovery import build
 
 # Construct a BigQuery client object.
 bigquery_client = bigquery.Client()
 
-SERVICE_ACCOUNT_FILE = 'svc_key.json'
-GA_MANAGEMENT_API_NAME = 'analytics'
-GA_MANAGEMENT_API_VERSION = 'v3'
-GA_SCOPES = [
-    'https://www.googleapis.com/auth/analytics.edit',
-    'https://www.googleapis.com/auth/analytics'
-]
+SERVICE_ACCOUNT_FILE = 'credentials.json'
+GA_SCOPES = ['https://www.googleapis.com/auth/analytics.readonly']
 DATASET_ID = 'analytics_settings_database'
 
-REQUEST_DELAY = .1
+REQUEST_DELAY = .2
 
 def ga_settings_download(event):
   """Retrieve GA settings and save them to a series of BigQuery Tables.
@@ -48,37 +43,11 @@ def ga_settings_download(event):
     A string indicating that the settings were downloaded.
   """
   # Authenticate and construct ga service.
-  analytics_apis = authorize_ga_apis()
-  management_api = analytics_apis[0]
-  admin_api = analytics_apis[1]
-
-  lists = {}
-  # Get account summaries.
-  account_summaries = get_ua_account_summaries(management_api)
-  lists['ua_account_summaries'] = account_summaries or []
-
-  # Get goal settings.
-  lists['ua_goals'] = get_ua_goals(management_api) or []
-
-  # Get view settings.
-  lists['ua_views'] = get_ua_views(management_api) or []
-
-  # Get filter settings.
-  lists['ua_filters'] = (
-      get_ua_filters(management_api, account_summaries) or [])
-
-  # Get filter link settings.
-  lists['ua_filter_links'] = (
-      get_ua_filter_links(management_api, account_summaries) or [])
-
-  # Get segment settings.
-  lists['ua_segments'] = get_ua_segments(management_api) or []
-
-  # Get property level entities.
-  lists |= get_ua_property_level_settings(management_api, account_summaries)
+  admin_api = authorize_ga_apis()
 
   # Get GA4 entitity settings.
-  lists |= list_ga4_entities(admin_api)  
+  lists = {}
+  lists |= list_ga4_resources(admin_api)  
 
   for key in lists:
     data = lists[key]
@@ -87,183 +56,30 @@ def ga_settings_download(event):
       if errors != []:
         f_errors = format(errors)
         print(f'{key}: Encountered errors while inserting rows: {f_errors}')
-  return 'complete'
+  print('GA settings import complete')
+  return 'done'
 
 
 def authorize_ga_apis():
-  """Fetches the UA Management API object.
+  """Fetches the Google Analytics Admin API client.
 
   Returns:
-    The UA Management object.
+    The admin API client.
   """
   source_credentials, project_id = google.auth.default(scopes=GA_SCOPES)
-  ga_management_api = build(
-      GA_MANAGEMENT_API_NAME,
-      GA_MANAGEMENT_API_VERSION,
-      cache_discovery=False,
-      credentials=source_credentials)
   ga_admin_api = AnalyticsAdminServiceClient(credentials=source_credentials)
-  return (ga_management_api, ga_admin_api)
+  return ga_admin_api
 
-
-def get_ua_account_summaries(management_api):
-  """Get a list of UA account summaries.
-
-  Args:
-    management_api: The Analytics Management API object.
-
-  Returns:
-    A list of the GA account summaries.
-  """
-  account_summaries = (
-      management_api.management().accountSummaries().list().execute())
-  return account_summaries['items']
-
-
-def get_ua_goals(management_api):
-  """Get a list of UA goal settings.
-
-  Args:
-    management_api: The Analytics Management API object.
-
-  Returns:
-    A list of UA goal settings.
-  """
-  goals = management_api.management().goals().list(
-      accountId='~all', webPropertyId='~all', profileId='~all').execute()
-  list_of_goals = goals['items']
-  return list_of_goals
-
-
-def get_ua_views(management_api):
-  """Get a list of UA view settings.
-
-  Args:
-    management_api: The Analytics Management API object.
-
-  Returns:
-    A list of UA view settings.
-  """
-  views = management_api.management().profiles().list(
-      accountId='~all', webPropertyId='~all').execute()
-  list_of_views = views['items']
-  time.sleep(REQUEST_DELAY)
-  return list_of_views
-
-
-def get_ua_filter_links(management_api, account_summaries):
-  """Get a list of UA filter link settings for all accounts.
-
-  Args:
-    management_api: The Analytics Management API object.
-    account_summaries: A list containing the account structure for all of the
-      Analytics accounts the user has access to.
-
-  Returns:
-    A list of UA filter link settings for all accounts.
-  """
-  filter_link_list = []
-  for account in account_summaries:
-    filter_links = management_api.management().profileFilterLinks().list(
-        accountId=account['id'], webPropertyId='~all',
-        profileId='~all').execute()
-    filter_link_list.extend(filter_links['items'])
-    time.sleep(REQUEST_DELAY)
-  return filter_link_list
-
-
-def get_ua_filters(management_api, account_summaries):
-  """Get a list of UA filter settings for all accounts.
-
-  Args:
-    management_api: The Analytics Management API object.
-    account_summaries: A list containing the account structure for all of the
-      Analytics accounts the user has access to.
-
-  Returns:
-    A list of UA filter settings for all accounts.
-  """
-  filter_list = []
-  for account in account_summaries:
-    filters = management_api.management().filters().list(
-        accountId=account['id']).execute()
-    filter_list.extend(filters['items'])
-    time.sleep(REQUEST_DELAY)
-  return filter_list
-
-
-def get_ua_segments(management_api):
-  """Get a list of UA segment settings to which the user has access.
-
-  Args:
-    management_api: The Analytics Management API object.
-
-  Returns:
-    A list of UA segment settings.
-  """
-  segment_list = []
-  segments = management_api.management().segments().list().execute()
-  segment_list.extend(segments['items'])
-  time.sleep(REQUEST_DELAY)
-
-
-def get_ua_property_level_settings(management_api, account_summaries):
-  """Get a dictionary containing lists of UA property level settings.
-
-  Args:
-    management_api: The Analytics Management API object.
-    account_summaries: A list containing the account structure for all of the
-      Analytics accounts the user has access to.
-
-  Returns:
-    A dictionary contain separate lists for audience, Google Ads link, custom
-    dimension, and custom metric settings.
-  """
-  lists = {
-      'ua_audiences': [],
-      'ua_google_ads_links': [],
-      'ua_custom_dimensions': [],
-      'ua_custom_metrics': [],
-  }
-  for account in account_summaries:
-    if account['webProperties']:
-      for prop in account['webProperties']:
-        returned_audience_value = (
-            management_api.management().remarketingAudience().list(
-                accountId=account['id'], webPropertyId=prop['id']).execute())
-        lists['ua_audiences'].extend(returned_audience_value['items'])
-        time.sleep(REQUEST_DELAY)
-
-        returned_al_value = (
-            management_api.management().webPropertyAdWordsLinks().list(
-                accountId=account['id'], webPropertyId=prop['id']).execute())
-        lists['ua_google_ads_links'].extend(returned_al_value['items'])
-        time.sleep(REQUEST_DELAY)
-
-        returned_cd_value = (
-            management_api.management().customDimensions().list(
-                accountId=account['id'], webPropertyId=prop['id']).execute())
-        lists['ua_custom_dimensions'].extend(returned_cd_value['items'])
-        time.sleep(REQUEST_DELAY)
-
-        returned_cm_value = (
-            management_api.management().customMetrics().list(
-                accountId=account['id'], webPropertyId=prop['id']).execute())
-        lists['ua_custom_metrics'].extend(returned_cm_value['items'])
-        time.sleep(REQUEST_DELAY)
-  return lists
-
-
-def list_ga4_entities(admin_api):
+def list_ga4_resources(admin_api):
   """Get a dictionary of GA4 entity settings based on type.
 
   Args:
-    admin_api: The Admin API object.
+    admin_api: The Admin API client.
 
   Returns:
-    A dictionary of GA4 entity setting lists.
+    A dictionary of GA4 resource lists.
   """
-  entities = {
+  resources = {
       'ga4_account_summaries': [],
       'ga4_accounts': [],
       'ga4_properties': [],
@@ -276,23 +92,33 @@ def list_ga4_entities(admin_api):
       'ga4_dv360_links': [],
       'ga4_firebase_links': [],
       'ga4_google_ads_links': [],
-      'ga4_audiences': []
+      'ga4_audiences': [],
+      'ga4_enhanced_measurement_settings': [],
+      'ga4_sa360_links': [],
+      'ga4_bigquery_links': [],
+      'ga4_expanded_data_sets': [],
+      'ga4_channel_groups': [],
+      'ga4_adsense_links': [],
+      'ga4_event_create_rules': [],
+      'ga4_sk_ad_network_conversion_value_schemas': []
   }
   # Account summaries
-  for account_summary in admin_api.list_account_summaries():
+  for account_summary in admin_api.list_account_summaries(
+    request={'page_size': 200}):
     summaries_dict = humps.decamelize(MessageToDict(account_summary._pb))
-    entities['ga4_account_summaries'].append(summaries_dict)
+    resources['ga4_account_summaries'].append(summaries_dict)
   time.sleep(REQUEST_DELAY)
   # Accounts
-  for account in admin_api.list_accounts():
+  for account in admin_api.list_accounts(request={'page_size': 200}):
     account_dict = humps.decamelize(MessageToDict(account._pb))
-    entities['ga4_accounts'].append(account_dict)
+    resources['ga4_accounts'].append(account_dict)
   time.sleep(REQUEST_DELAY)
-  # Properties, data retention settings, and Google Signals settings
-  for account_summary in entities['ga4_account_summaries']:
+  # Properties
+  for account_summary in resources['ga4_account_summaries']:
     prop_request = ListPropertiesRequest(
-        filter=f"ancestor:{account_summary['account']}")
-    # Properties
+        filter=f"ancestor:{account_summary['account']}",
+        page_size=200)
+    # Settings specific to properties
     for prop in admin_api.list_properties(prop_request):
       property_dict = humps.decamelize(MessageToDict(prop._pb))
       time.sleep(REQUEST_DELAY)
@@ -317,109 +143,158 @@ def list_ga4_entities(admin_api):
         MessageToDict(attribution_settings._pb))
       property_dict['attribution_settings'] = attribution_dict
       # Append property to list of properties
-      entities['ga4_properties'].append(property_dict)
+      resources['ga4_properties'].append(property_dict)
     time.sleep(REQUEST_DELAY)
-    # Property level settings
+    # Settings below the property level
     for property_summary in account_summary['property_summaries']:
       property_path = property_summary['property']
       property_display_name = property_summary['display_name']
       # Data streams
       for data_stream in admin_api.list_data_streams(
-          parent=property_path):
+          request={'parent': property_path, 'page_size': 200}):
         data_stream_dict = format_resource_dict(
           data_stream, property_path, property_display_name)
         time.sleep(REQUEST_DELAY)
-        if data_stream.web_stream_data != None:
-          # Web stream measurement protocol secrets
-          for mps in admin_api.list_measurement_protocol_secrets(
-              parent=data_stream.name):
-            mps_dict = format_resource_dict(
-              data_stream, property_path, property_display_name)
-            mps_dict['type'] = DataStream.DataStreamType(data_stream.type_).name
-            mps_dict['stream_name'] = data_stream.name
-            entities['ga4_measurement_protocol_secrets'].append(mps_dict)
+        # Measurement protocol secrets
+        for mps in admin_api.list_measurement_protocol_secrets(
+            parent=data_stream.name):
+          mps_dict = format_resource_dict(
+            mps, property_path, property_display_name)
+          mps_dict['type'] = DataStream.DataStreamType(data_stream.type_).name
+          mps_dict['stream_name'] = data_stream.name
+          resources['ga4_measurement_protocol_secrets'].append(mps_dict)
           time.sleep(REQUEST_DELAY)
-        if data_stream.android_app_stream_data != None:
-          # Android app data stream measurement protocol secrets
-          for mps in admin_api.list_measurement_protocol_secrets(
-              parent=data_stream.name):
-            mps_dict = format_resource_dict(
-              data_stream, property_path, property_display_name)
-            mps_dict['type'] = DataStream.DataStreamType(data_stream.type_).name
-            mps_dict['stream_name'] = data_stream.name
-            entities['ga4_measurement_protocol_secrets'].append(mps_dict)
+        # Event Create Rules
+        for ecr in admin_api.list_event_create_rules(
+        request={'page_size': 200, 'parent': data_stream.name}):
+          resource_dict = format_resource_dict(
+            resource, property_path, property_display_name)
+          resource_dict['type'] = DataStream.DataStreamType(data_stream.type_).name
+          resource_dict['stream_name'] = data_stream.name
+          resources['ga4_event_create_rules'].append(resource_dict)
           time.sleep(REQUEST_DELAY)
-        if data_stream.ios_app_stream_data != None:
-          # iOS app data strem measurement protocol secrets
-          for mps in admin_api.list_measurement_protocol_secrets(
-              parent=data_stream.name):
-            mps_dict = format_resource_dict(
-              data_stream, property_path, property_display_name)
-            mps_dict['type'] = DataStream.DataStreamType(data_stream.type_).name
-            mps_dict['stream_name'] = data_stream.name
-            entities['ga4_measurement_protocol_secrets'].append(mps_dict)
-        entities['ga4_data_streams'].append(data_stream_dict)
-      time.sleep(REQUEST_DELAY)
+        if DataStream.DataStreamType(data_stream.type_).name == 'WEB_DATA_STREAM':
+          # Enhanced measurement settings
+          ems = admin_api.get_enhanced_measurement_settings(
+            name=data_stream.name + '/enhancedMeasurementSettings')
+          ems_dict = format_resource_dict(
+            ems, property_path, property_display_name)
+          ems_dict['stream_name'] = data_stream.name
+          resources['ga4_enhanced_measurement_settings'].append(ems_dict)
+          time.sleep(REQUEST_DELAY)
+        if DataStream.DataStreamType(data_stream.type_).name == 'IOS_APP_DATA_STREAM':
+          # SK Ad Network Conversion Value Schema settings
+          for resource in admin_api.list_sk_ad_network_conversion_value_schemas(
+            request={'page_size': 200, 'parent': data_stream.name}):
+            resource_dict = format_resource_dict(
+              resource, property_path, property_display_name)
+            resource_dict['stream_name'] = data_stream.name
+            resources['ga4_sk_ad_network_conversion_value_schemas'].append(
+              resource_dict)
+            time.sleep(REQUEST_DELAY)
       # Events
       for event in admin_api.list_conversion_events(
-          parent=property_path):
+          request={'parent': property_path, 'page_size': 200}):
         formatted_dict = format_resource_dict(
           event, property_path, property_display_name)
-        entities['ga4_conversion_events'].append(formatted_dict)
+        resources['ga4_conversion_events'].append(formatted_dict)
       time.sleep(REQUEST_DELAY)
       # Custom dimensions
       for cd in admin_api.list_custom_dimensions(
-          parent=property_path):
+          request={'parent': property_path, 'page_size': 200}):
         formatted_dict = format_resource_dict(
           cd, property_path, property_display_name)
-        entities['ga4_custom_dimensions'].append(formatted_dict)
+        resources['ga4_custom_dimensions'].append(formatted_dict)
       time.sleep(REQUEST_DELAY)
       # Custom metrics
       for cm in admin_api.list_custom_metrics(
-          parent=property_path):
+          request={'parent': property_path, 'page_size': 200}):
         formatted_dict = format_resource_dict(
           cm, property_path, property_display_name)
-        entities['ga4_custom_metrics'].append(formatted_dict)
+        resources['ga4_custom_metrics'].append(formatted_dict)
       time.sleep(REQUEST_DELAY)
       # Google ads links
       for link in admin_api.list_google_ads_links(
-          parent=property_path):
+          request={'parent': property_path, 'page_size': 200}):
         formatted_dict = format_resource_dict(
           link, property_path, property_display_name)
-        entities['ga4_google_ads_links'].append(formatted_dict)
+        resources['ga4_google_ads_links'].append(formatted_dict)
       time.sleep(REQUEST_DELAY)
       # Firebase links
       for link in admin_api.list_firebase_links(
-          parent=property_path):
+          request={'parent': property_path, 'page_size': 200}):
         formatted_dict = format_resource_dict(
           link, property_path, property_display_name)
-        entities['ga4_firebase_links'].append(formatted_dict)
+        resources['ga4_firebase_links'].append(formatted_dict)
       time.sleep(REQUEST_DELAY)
       # DV360 advertiser links
       for link in admin_api.list_display_video360_advertiser_links(
-          parent=property_path):
+          request={'parent': property_path, 'page_size': 200}):
         formatted_dict = format_resource_dict(
           link, property_path, property_display_name)
-        entities['ga4_dv360_links'].append(formatted_dict)
+        resources['ga4_dv360_links'].append(formatted_dict)
       time.sleep(REQUEST_DELAY)
       # DV360 advertiser link proposals
       for proposal in (
           admin_api.list_display_video360_advertiser_link_proposals(
-              parent=property_path)):
+              request={'parent': property_path, 'page_size': 200})):
         formatted_dict = format_resource_dict(
           proposal, property_path, property_display_name)
-        entities['ga4_dv360_link_proposals'].append(formatted_dict)
+        resources['ga4_dv360_link_proposals'].append(formatted_dict)
+      time.sleep(REQUEST_DELAY)
+      # SA360 advertiser links
+      for link in admin_api.list_search_ads360_links(
+          request={'parent': property_path, 'page_size': 200}):
+        formatted_dict = format_resource_dict(
+          link, property_path, property_display_name)
+        resources['ga4_sa360_links'].append(formatted_dict)
+      time.sleep(REQUEST_DELAY)
+      # BigQuery links
+      for link in admin_api.list_big_query_links(
+          request={'parent': property_path, 'page_size': 200}):
+        formatted_dict = format_resource_dict(
+          link, property_path, property_display_name)
+        resources['ga4_bigquery_links'].append(formatted_dict)
       time.sleep(REQUEST_DELAY)
       # Audiences 
-      for audience in (admin_api.list_audiences(parent=property_path)):
+      for audience in admin_api.list_audiences(
+      request={'parent': property_path, 'page_size': 200}):
         formatted_dict = format_resource_dict(
           audience, property_path, property_display_name)
         if 'filter_clauses' in formatted_dict:
           string_clauses = json.dumps(formatted_dict['filter_clauses'])
           formatted_dict['filter_clauses'] = string_clauses
-        entities['ga4_audiences'].append(formatted_dict)
+        resources['ga4_audiences'].append(formatted_dict)
       time.sleep(REQUEST_DELAY)
-  return entities
+      # Expanded Data Sets 
+      for data_set in admin_api.list_expanded_data_sets(
+      request={'parent': property_path, 'page_size': 200}):
+        formatted_dict = format_resource_dict(
+          data_set, property_path, property_display_name)
+        if 'dimension_ilter_expression' in formatted_dict:
+          string_clauses = json.dumps(
+            formatted_dict['dimension_ilter_expression'])
+          formatted_dict['dimension_ilter_expression'] = string_clauses
+        resources['ga4_expanded_data_sets'].append(formatted_dict)
+      time.sleep(REQUEST_DELAY)
+      # Custom Channel Groups
+      for resource in admin_api.list_channel_groups(
+      request={'parent': property_path, 'page_size': 200}):
+        formatted_dict = format_resource_dict(
+          resource, property_path, property_display_name)
+        if 'grouping_rule' in formatted_dict:
+          string_clauses = json.dumps(formatted_dict['grouping_rule'])
+          formatted_dict['grouping_rule'] = string_clauses
+        resources['ga4_channel_groups'].append(formatted_dict)
+      time.sleep(REQUEST_DELAY)
+      # AdSense Links
+      for resource in admin_api.list_ad_sense_links(
+      request={'parent': property_path, 'page_size': 200}):
+        formatted_dict = format_resource_dict(
+        resource, property_path, property_display_name)
+        resources['ga4_adsense_links'].append(formatted_dict)
+        time.sleep(REQUEST_DELAY)
+  return resources
   
 def format_resource_dict(data, property_path, property_display_name):
   data_dict = humps.decamelize(MessageToDict(data._pb))
