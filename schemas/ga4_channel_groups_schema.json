@@ -1,0 +1,32 @@
+[
+  {
+    "name": "name",
+    "type": "STRING",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "property_display_name",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "property",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "display_name",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "STRING",
+    "name": "grouping_rule",
+    "mode": "NULLABLE"
+  },
+  {
+    "type": "BOOLEAN",
+    "name": "system_defined",
+    "mode": "NULLABLE"
+  }
+]

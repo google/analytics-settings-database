@@ -34,5 +34,10 @@
     "mode": "NULLABLE",
     "name": "name",
     "type": "STRING"
+  },
+  {
+    "mode": "NULLABLE",
+    "name": "counting_method",
+    "type": "STRING"
   }
 ]

@@ -64,6 +64,11 @@
         "mode":"NULLABLE",
         "name":"reporting_attribution_model",
         "type":"STRING"
+      },
+      {
+        "mode":"NULLABLE",
+        "name":"ads_web_conversion_data_export_scope",
+        "type":"STRING"
       }
     ],
     "mode":"NULLABLE",
