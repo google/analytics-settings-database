@@ -1,7 +1,7 @@
 #!/bin/bash
 ###########################################################################
 #
-#  Copyright 2021 Google Inc.
+#  Copyright 2023 Google Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -18,25 +18,25 @@
 
 echo "******** Welcome **********
 *
-* Google Analytics Health Checkup Table Deployment
+* Google Analytics Property Overview Table Deployment
 *
 ***************************"
 echo "---------------------------"
 read -p "Please enter your Google Cloud Project ID: " project_id
 echo "---------------------------"
 bq mk -t --time_partitioning_type=DAY \
-	$project_id:analytics_settings_database.health_checkup
-sql=$(cat health_checkup.sql)
+	$project_id:analytics_settings_database.property_overview
+sql=$(cat property_overview.sql)
 bq query \
 	--use_legacy_sql=false \
-	--destination_table=$project_id:analytics_settings_database.health_checkup \
-	--display_name="Analytics Health Checkup" \
+	--destination_table=$project_id:analytics_settings_database.property_overview \
+	--display_name="Property Overview" \
 	--schedule="every day 23:30" \
 	--append_table=true \
 	"$sql"
 
 echo "***************************
 *
-* Google Analytics Health Checkup Table Deployment Complete
+* Google Analytics Property Overview Table Deployment Complete
 *
 ***************************"

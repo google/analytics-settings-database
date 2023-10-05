@@ -49,16 +49,30 @@ def ga_settings_download(event):
   lists = {}
   lists |= list_ga4_resources(admin_api)  
 
+  dataset = bigquery_client.dataset(DATASET_ID)
   for key in lists:
     data = lists[key]
-    if data:  # If a list has data, then it will be written to BigQuery.
-      errors = bigquery_client.insert_rows_json(f'{DATASET_ID}.{key}', data)
-      if errors != []:
-        f_errors = format(errors)
-        print(f'{key}: Encountered errors while inserting rows: {f_errors}')
+    if data:
+      # Create newline delimited JSON file to to loaded into BigQuery.
+      with open('/tmp/data.json', 'w') as json_file:
+        for resource in data:
+          json.dump(resource, json_file)
+          json_file.write('\n')
+      json_file.close()
+      r = open('/tmp/data.json', 'rb')
+      # Create load job.
+      job_config = bigquery.LoadJobConfig()
+      job_config.source_format = bigquery.SourceFormat.NEWLINE_DELIMITED_JSON
+      table = dataset.table(key)
+      job = bigquery_client.load_table_from_file(
+        r, table, job_config=job_config)
+      # Load the data into BigQuery.
+      result = job.result()
+      print(result)
+      # Delete the temporary file.
+      os.remove('/tmp/data.json')
   print('GA settings import complete')
-  return 'done'
-
+  return 'success'
 
 def authorize_ga_apis():
   """Fetches the Google Analytics Admin API client.

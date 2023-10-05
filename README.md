@@ -12,6 +12,8 @@ This repository contains code for a Google Cloud Function that loads Google Anal
 
 ### Implementation
 
+#### Downloader Function
+
 1. Navigate to your Google Cloud and enable the [Google Analytics Admin API](https://console.cloud.google.com/apis/library/analyticsadmin.googleapis.com)
 2. Navigate to [IAM & Admin > Service Accounts ](https://console.cloud.google.com/iam-admin/serviceaccounts) and create a new service account.
     - Give the service account a name. This guide will use analytics-settings-database as an example.
@@ -23,7 +25,7 @@ This repository contains code for a Google Cloud Function that loads Google Anal
 
     ```
 
-    rm -rf analytics-settings-database && git clone https://github.com/google/analytics-settings-database.git && cd analytics-settings-database && bash deploy\_function.sh
+    rm -rf analytics-settings-database && git clone https://github.com/google/analytics-settings-database.git && cd analytics-settings-database && bash deploy_function.sh
 
     ```
     - Follow the steps outlined in the deploy script to create the HTTP function.
@@ -35,7 +37,7 @@ This repository contains code for a Google Cloud Function that loads Google Anal
 6. If it is not already open, open cloud shell again and enter the following to create your BigQuery dataset and tables. This will automatically create a data set named "analytics\_settings\_database" and populate it with the required tables.
     ```
 
-    cd analytics-settings-database && bash deploy\_bq\_tables.sh
+    cd analytics-settings-database && bash deploy_bq_tables.sh
 
     ```
     - Once the script has run, your new tables should be visible in BigQuery.
@@ -51,3 +53,36 @@ This repository contains code for a Google Cloud Function that loads Google Anal
 8. Copy your service account email and grant it access to the GA4 accounts you want it to access. 
 
 Upon completing the implementation process, the settings for your Google Analytics accounts that the API can access will be loaded into BigQuery daily at 10 PM. The frequency with which this happens can be adjusted by modifying the Cloud Scheduler Job created during the deployment process.
+
+#### Property Overview Table
+
+The property overview table serves as an example of how the various settings tables can be combined to create a useful report on the status of various settings for your properties. You can either create a scheduled query based on the property\_overview.sql query or create a cloud function workflow.
+
+##### Scheduled Query Deployment
+1. Open cloud shell and enter the following to create the cloud function:
+
+    ```
+
+    cd analytics-settings-database/report_tables/property_overview && bash deploy_query.sh
+
+    ```
+2. Upon completing the deploy script, the scheduled query should be complete.
+3. Setup is now complete. Your new property overview table will be populated when your scheduled query runs.
+
+##### Cloud Function Workflow
+
+1. Open cloud shell and enter the following to create the cloud function:
+
+    ```
+
+    cd analytics-settings-database/report_tables/property_overview && bash deploy_function.sh
+
+    ```
+    When the script completes, the following should be created:
+    - A property overview cloud function.
+    - A property overview table.
+    - A property overview workflow.
+2. Navigate to your [workflows](https://console.cloud.google.com/workflows) and edit your new workflow.
+3. Add a cloud scheduler trigger and save your workflow.
+4. If you previously created a cloud scheduler to trigger your downloader function, navigate to to the [Cloud Scheduler](https://console.cloud.google.com/cloudscheduler) page and delete the cloud scheduler that was previously used with your cloud function.
+5. Setup is now complete and your new property overview table should be populated whenever your worklow is scheduled to run.
