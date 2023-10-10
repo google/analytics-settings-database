@@ -21,12 +21,16 @@ echo "******** Welcome **********
 * Google Analytics Property Overview Table Deployment
 *
 ***************************"
-echo "---------------------------"
+
 read -p "Please enter your Google Cloud Project ID: " project_id
-echo "---------------------------"
+
 bq mk -t --time_partitioning_type=DAY \
 	$project_id:analytics_settings_database.property_overview
+
+cd query
+
 sql=$(cat property_overview.sql)
+
 bq query \
 	--use_legacy_sql=false \
 	--destination_table=$project_id:analytics_settings_database.property_overview \
@@ -40,3 +44,4 @@ echo "***************************
 * Google Analytics Property Overview Table Deployment Complete
 *
 ***************************"
+

@@ -73,9 +73,9 @@ read -p "Please enter your property overview function URL: " property_overview_u
 
 read -p "Please enter your settings downloader service account email: " downloader_service_account
 
-sed -i -e "s/{downloader-function-url}/$downloader_url/g" property_overview.yaml
+sed -i -e "s|{downloader-function-url}|$downloader_url|g" property_overview.yaml
 
-sed -i -e "s/{property-overview-function-url}/$property_overview_url/g" property_overview.yaml
+sed -i -e "s|{property-overview-function-url}|$property_overview_url|g" property_overview.yaml
 
 echo "~~~~~~~~ Creating Workflow ~~~~~~~~~~"
 echo "**** Enable Workflows API ****"
